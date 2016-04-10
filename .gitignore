@@ -1,0 +1,14 @@
+# module rules
+.*
+*.o
+*.ko
+*.mod.c
+*.order
+Module.symvers
+
+# git dotfiles
+!.gitignore
+
+# autosave and temporary files
+*~
+\#*#
