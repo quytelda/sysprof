@@ -23,6 +23,8 @@
 #include <linux/module.h>
 #include <linux/proc_fs.h>
 
+#include "data/netfilter.h"
+
 MODULE_AUTHOR("Quytelda Kahja");
 MODULE_AUTHOR("Roger Xiao");
 MODULE_LICENSE("GPLv3");
@@ -60,7 +62,7 @@ static const struct file_operations proc_fops =
 
 int __init sysprof_init(void)
 {
-    printk(KERN_INFO "Loading sysprof module...\n");
+    printk(KERN_INFO "sysprof: Loading sysprof module...\n");
 
     /* setup proc filesystem entry */
     proc_entry = proc_create(PROC_ENTRY_FILENAME, 0644, NULL, &proc_fops);
@@ -71,12 +73,19 @@ int __init sysprof_init(void)
 	return -ENOMEM;
     }
 
+    /* set up network monitoring */
+    init_netfilter();
+
+    printk(KERN_INFO "sysprof: Loaded module.");
     return 0;
 }
 
 void __exit sysprof_exit(void)
 {
-    printk(KERN_INFO "Unloading sysprof module...\n");
+    printk(KERN_INFO "sysprof: Unloading sysprof module...\n");
+
+    /* clean up network monitoring */
+    exit_netfilter();
 
     /* clean up proc filesystem entry */
     remove_proc_entry(PROC_ENTRY_FILENAME, NULL);
