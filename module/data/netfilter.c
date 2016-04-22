@@ -20,6 +20,7 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/ip.h>
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
 
@@ -31,6 +32,56 @@ static unsigned int hook_func_in(void * priv,
 				 struct sk_buff * skb,
 				 const struct nf_hook_state * state)
 {
+    // for interpreting udp and tcp packets
+    struct udphdr * udp_header = NULL;
+    struct tcphdr * tcp_header = NULL;
+
+    // TODO: not sure if we need these
+    // struct list_head *p;			//Not quite sure what this does
+    // struct mf_rule *a_rule;			//List of firewall rules
+
+    packets_in_count++; // keep track of incoming packet count
+
+    //Get the protocol, length, source IP, and destination IP of a packet caught in the hook:
+    struct iphdr *ip_header = (struct iphdr *) skb_network_header(skb);
+
+    unsigned int prot = (unsigned int)ip_header->protocol;
+    unsigned int len = (unsigned int)ip_header->tot_len;
+    unsigned int src_ip = (unsigned int)ip_header->saddr;
+    unsigned int dest_ip = (unsigned int)ip_header->daddr;
+
+    // the iphdr also has parameters check, frag_off, id, tot_len, and ttl. What do they do? How can we use them?
+
+    switch(ip_header->protocol)
+    {
+    case IPPROTO_IPIP : // IPv4 packet
+	ipv4_count++;
+	break;
+    case IPPROTO_IPV6 : // IPv6 packet
+	ipv6_count++;
+	break;
+    default :
+	;
+    }
+
+
+    if(prot == 6){		// TCP
+	// get source/destination data (special considerations)
+	// tcp_header = (struct tcphdr *)skb_transport_header(skb); //Special handler for TCP packets
+	// src_port = (unsigned int)ntohs(tcp_header->source);
+	// dest_port = (unsigned int)ntohs(tcp_header->dest);
+
+	tcp_count++;
+    }
+    else if(prot == 17){   //UDP
+
+	/* udp_header = (struct udphdr *)skb_transport_header(skb); */
+	/* src_port = (unsigned int)ntohs(udp_header->source); */
+	/* dest_port = (unsigned int)ntohs(udp_header->dest); */
+
+	udp_count++;
+    }
+
     //Let the packet through. We're just observing
     return NF_ACCEPT;			 
 }
