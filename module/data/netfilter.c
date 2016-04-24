@@ -125,17 +125,13 @@ static unsigned int hook_func_in(void * priv,
     
     }
     
-  /*switch(src_ip)
+  /*switch(dest_ip)
     {
-    	//Keep track of where the packets are coming from. If we get an anomalous amount of packets from a bunch of very distant
-    	//addresses, something might be wrong. Use geolocator to determine countries from IP addresses?????????????????
-    	//Also check if a certain IP address(es) is/are sending a disproportional amount of packets (perhaps 1 machine is
-    	//trying to do a DOS attack)
-    }*/
-    
-    /*if(dest_ip != ????????????){
-	Is there any reason the destination IP address wouldn't be the current machine's IP address?????
-	Also, is it possible to set a variable equal to the machine's IP address?????
+    	//Keep track of where the packets are going to. If we send an anomalous amount of packets to a bunch of very distant
+    	//addresses, something might be wrong.
+    	//Sending to a lot of IPs might be more suspicious than sending to very few--A chat session with another machine
+    	//may cause a lot of traffic to a specific IP address, but there is little reason to send a single packet to 10,000
+    	//different IP addresses
     }*/
     
     //Send counts to shared buffer?????????????
