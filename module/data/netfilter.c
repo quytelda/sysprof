@@ -24,8 +24,8 @@
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
 
-static unsigned int ipv4_count = 0, ipv6_count = 0;
-static unsigned int udp_count = 0, tcp_count = 0;
+//static unsigned int ipv4_count = 0, ipv6_count = 0;
+static unsigned int udp_count = 0, tcp_count = 0, icmp_count = 0, smp_count = 0;
 static unsigned int packets_in_count = 0, packets_out_count = 0;
 
 static unsigned int hook_func_in(void * priv,
@@ -33,8 +33,8 @@ static unsigned int hook_func_in(void * priv,
 				 const struct nf_hook_state * state)
 {
     // for interpreting udp and tcp packets
-    struct udphdr * udp_header = NULL;
-    struct tcphdr * tcp_header = NULL;
+    // struct udphdr * udp_header = NULL;
+    // struct tcphdr * tcp_header = NULL;
 
     // TODO: not sure if we need these
     // struct list_head *p;			//Not quite sure what this does
@@ -45,41 +45,31 @@ static unsigned int hook_func_in(void * priv,
     //Get the protocol, length, source IP, and destination IP of a packet caught in the hook:
     struct iphdr *ip_header = (struct iphdr *) skb_network_header(skb);
 
-    unsigned int prot = (unsigned int)ip_header->protocol;
-    unsigned int len = (unsigned int)ip_header->tot_len;
-    unsigned int src_ip = (unsigned int)ip_header->saddr;
-    unsigned int dest_ip = (unsigned int)ip_header->daddr;
+    /* switch(ip_header->protocol) */
+    /* { */
+    /* case IPPROTO_IPIP : // IPv4 packet */
+    /* 	ipv4_count++; */
+    /* 	break; */
+    /* case IPPROTO_IPV6 : // IPv6 packet */
+    /* 	ipv6_count++; */
+    /* 	break; */
+    /* } */
 
-    // the iphdr also has parameters check, frag_off, id, tot_len, and ttl. What do they do? How can we use them?
-
+    // count instances of specific protocols
     switch(ip_header->protocol)
     {
-    case IPPROTO_IPIP : // IPv4 packet
-	ipv4_count++;
-	break;
-    case IPPROTO_IPV6 : // IPv6 packet
-	ipv6_count++;
-	break;
-    default :
-	;
-    }
-
-
-    if(prot == 6){		// TCP
-	// get source/destination data (special considerations)
-	// tcp_header = (struct tcphdr *)skb_transport_header(skb); //Special handler for TCP packets
-	// src_port = (unsigned int)ntohs(tcp_header->source);
-	// dest_port = (unsigned int)ntohs(tcp_header->dest);
-
-	tcp_count++;
-    }
-    else if(prot == 17){   //UDP
-
-	/* udp_header = (struct udphdr *)skb_transport_header(skb); */
-	/* src_port = (unsigned int)ntohs(udp_header->source); */
-	/* dest_port = (unsigned int)ntohs(udp_header->dest); */
-
+    case IPPROTO_UDP :
 	udp_count++;
+	break;
+    case IPPROTO_TCP :
+	tcp_count++;
+	break;
+    case IPPROTO_ICMP :
+	icmp_count++;
+	break;
+    case 121 :
+	smp_count++;
+	break;
     }
 
     //Let the packet through. We're just observing
