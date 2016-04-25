@@ -11,88 +11,175 @@
  *
  * Sysprof is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Sysprof.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Sysprof.	If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/ip.h>
+#include <linux/udp.h>
+#include <linux/tcp.h>
+#include <linux/icmp.h>
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
 
-//static unsigned int ipv4_count = 0, ipv6_count = 0;
-static unsigned int udp_count = 0, tcp_count = 0, icmp_count = 0, smp_count = 0;
+static unsigned int ipv4_count = 0, ipv6_count = 0;
+static unsigned int udp_in_count = 0, tcp_in_count = 0, icmp_in_count = 0;
+static unsigned int udp_out_count = 0, tcp_out_count = 0, icmp_out_count = 0;
 static unsigned int packets_in_count = 0, packets_out_count = 0;
 
 static unsigned int hook_func_in(void * priv,
 				 struct sk_buff * skb,
 				 const struct nf_hook_state * state)
 {
-    // for interpreting udp and tcp packets
-    // struct udphdr * udp_header = NULL;
-    // struct tcphdr * tcp_header = NULL;
-
-    // TODO: not sure if we need these
-    // struct list_head *p;			//Not quite sure what this does
-    // struct mf_rule *a_rule;			//List of firewall rules
-
     packets_in_count++; // keep track of incoming packet count
 
-    //Get the protocol, length, source IP, and destination IP of a packet caught in the hook:
-    struct iphdr *ip_header = (struct iphdr *) skb_network_header(skb);
+    /* TODO: we can find out it the packet is ipv4 or ipv6:
+     *     nf_ct_l3num(skb->nfct)
+     */
 
-    /* switch(ip_header->protocol) */
-    /* { */
-    /* case IPPROTO_IPIP : // IPv4 packet */
-    /* 	ipv4_count++; */
-    /* 	break; */
-    /* case IPPROTO_IPV6 : // IPv6 packet */
-    /* 	ipv6_count++; */
-    /* 	break; */
-    /* } */
+    // get the protocol, length, source IP, and destination IP of a packet caught in the hook:
+    struct iphdr * ip_header = (struct iphdr *) skb_network_header(skb);
 
-    // count instances of specific protocols
+    /* TODO: the iphdr also has parameters check, frag_off, id, tot_len, and
+     * ttl. What do they do? How can we use them?  Anything we can learn
+     * from ttl (time to live) value? */
+    unsigned int len = (unsigned int) ip_header->tot_len;
+    unsigned int src_ip  = (unsigned int) ip_header->saddr;
+    unsigned int dest_ip = (unsigned int) ip_header->daddr;
+    unsigned int src_port = 0, dest_port = 0;
+
     switch(ip_header->protocol)
     {
     case IPPROTO_UDP :
-	udp_count++;
+	udp_in_count++;
+
+	struct udphdr * udp_header = (struct udphdr *) skb_transport_header(skb);
+	src_port  = (unsigned int) ntohs(udp_header->source);
+	dest_port = (unsigned int) ntohs(udp_header->dest);
+
+	src_ip  = (unsigned int) udp_header->source;
+	dest_ip = (unsigned int) udp_header->dest;
+
 	break;
     case IPPROTO_TCP :
-	tcp_count++;
+	tcp_in_count++;
+
+	struct tcphdr * tcp_header = (struct tcphdr *) skb_transport_header(skb);
+	src_port  = (unsigned int) ntohs(tcp_header->source);
+	dest_port = (unsigned int) ntohs(tcp_header->dest);
+
+	src_ip  = (unsigned int) tcp_header->source;
+	dest_ip = (unsigned int) tcp_header->dest;
+
+	break;
+    case IPPROTO_ICMP : 
+	icmp_in_count++;
+	/* XXX: ICMP header does not contain source/destination information. */
+	break;
+    default : // no special treatment
+	src_ip  = (unsigned int) ip_header->saddr;
+	dest_ip = (unsigned int) ip_header->daddr;
+    }
+
+    /* TODO: switch(dest_ip)
+    {
+	//Keep track of where the packets are going to. If we send an anomalous amount of packets to a bunch of very distant
+	//addresses, something might be wrong.
+	//Sending to a lot of IPs might be more suspicious than sending to very few--A chat session with another machine
+	//may cause a lot of traffic to a specific IP address, but there is little reason to send a single packet to 10,000
+	//different IP addresses
+    }*/
+
+    // TODO: send counts to shared buffer?
+
+    // let the packet through. We're just observing
+    return NF_ACCEPT;
+}
+
+static unsigned int hook_func_out(void * priv,
+				 struct sk_buff * skb,
+				 const struct nf_hook_state * state)
+{
+    packets_out_count++; // keep track of incoming packet count
+
+    // get the protocol, length, source IP, and destination IP of a packet caught in the hook:
+    struct iphdr * ip_header = (struct iphdr *) skb_network_header(skb);
+
+    /* TODO: the iphdr also has parameters check, frag_off, id, tot_len, and
+     * ttl. What do they do? How can we use them?  Anything we can learn
+     * from ttl (time to live) value? */
+    unsigned int len = (unsigned int) ip_header->tot_len;
+    unsigned int src_ip  = (unsigned int) ip_header->saddr;
+    unsigned int dest_ip = (unsigned int) ip_header->daddr;
+    unsigned int src_port = 0, dest_port = 0;
+
+    switch(ip_header->protocol)
+    {
+    case IPPROTO_UDP :
+	udp_out_count++;
+
+	struct udphdr * udp_header = (struct udphdr *) skb_transport_header(skb);
+	src_port  = (unsigned int) ntohs(udp_header->source);
+	dest_port = (unsigned int) ntohs(udp_header->dest);
+
+	src_ip  = (unsigned int) udp_header->source;
+	dest_ip = (unsigned int) udp_header->dest;
+
+	break;
+    case IPPROTO_TCP :
+	tcp_out_count++;
+
+	struct tcphdr * tcp_header = (struct tcphdr *) skb_transport_header(skb);
+	src_port  = (unsigned int) ntohs(tcp_header->source);
+	dest_port = (unsigned int) ntohs(tcp_header->dest);
+
+	src_ip  = (unsigned int) tcp_header->source;
+	dest_ip = (unsigned int) tcp_header->dest;
+
 	break;
     case IPPROTO_ICMP :
-	icmp_count++;
-	break;
-    case 121 :
-	smp_count++;
+	icmp_out_count++;
 	break;
     }
 
-    //Let the packet through. We're just observing
-    return NF_ACCEPT;			 
+    // let the packet through. We're just observing
+    return NF_ACCEPT;
 }
 
-static struct nf_hook_ops nfho =
+static struct nf_hook_ops nfho_in =
 {
     .hook     = hook_func_in,
     .hooknum  = NF_INET_LOCAL_IN,
-    .pf       = PF_INET,
+    .pf	      = PF_INET,
     .priority = NF_IP_PRI_FIRST,
 };
+
+static struct nf_hook_ops nfho_out =
+{
+    .hook	= hook_func_out,
+    .hooknum	= NF_INET_LOCAL_OUT,
+    .pf		= PF_INET,
+    .priority	= NF_IP_PRI_FIRST, // different hook, can also be first
+};
+
+//Via example at http://pleviaka.pp.fi/netfilter_module.c
 
 /*
  */
 void init_netfilter(void)
 {
-    nf_register_hook(&nfho);         // Register the hook
+    nf_register_hook(&nfho_in);	     // Register the hook
+    nf_register_hook(&nfho_out);
 }
 
 
 void exit_netfilter(void)
 {
-    nf_unregister_hook(&nfho);
+    nf_unregister_hook(&nfho_in);
+    nf_unregister_hook(&nfho_out);
 }
