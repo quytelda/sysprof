@@ -33,13 +33,22 @@ static unsigned int udp_out_count = 0, tcp_out_count = 0, icmp_out_count = 0;
 static unsigned int packets_in_count = 0, packets_out_count = 0;
 
 struct NET net;
+//net.source_ips =  malloc(1000 * sizeof *net.);
+//net.source_ports =  malloc(1000 * sizeof *net.s);
+//net.dest_ips =  malloc(1000 * sizeof *net.s);
+//net.dest_ports =  malloc(1000 * sizeof *net.s);
 
+//Should the hook functions pass in a NET struct????????
 static unsigned int hook_func_in(void * priv,
 				 struct sk_buff * skb,
 				 const struct nf_hook_state * state)
 {
     packets_in_count++; // keep track of incoming packet count
     //net.pac_in++;
+    
+    if(packets_in_count > 1000){ //More incoming packets than we thought. Not enough room to fit all the packet info!
+    	//What to do in that situation? Give an automatic warning?
+    }
 
     /* TODO: we can find out it the packet is ipv4 or ipv6:
      *     nf_ct_l3num(skb->nfct)
@@ -102,6 +111,9 @@ static unsigned int hook_func_in(void * priv,
 	//different IP addresses
     }*/
 
+    source_ips[net.pac_in - 1] = src_ip;
+    source_ports[net.pac_in - 1] = src_port;
+
     // let the packet through. We're just observing
     return NF_ACCEPT;
 }
@@ -112,6 +124,10 @@ static unsigned int hook_func_out(void * priv,
 {
     packets_out_count++; // keep track of incoming packet count
     //net.pac_out++;
+    
+    if(packets_out_count > 1000){
+    	//...
+    }
 
     // get the protocol, length, source IP, and destination IP of a packet caught in the hook:
     struct iphdr * ip_header = (struct iphdr *) skb_network_header(skb);
@@ -159,6 +175,9 @@ static unsigned int hook_func_out(void * priv,
 	src_ip  = (unsigned int) ip_header->saddr;
 	dest_ip = (unsigned int) ip_header->daddr;
     }
+    
+    dest_ips[net.pac_out - 1] = src_ip;
+    dest_ports[net.pac_out - 1] = src_port;
 
     // let the packet through. We're just observing
     return NF_ACCEPT;
