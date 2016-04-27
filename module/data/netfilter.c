@@ -32,11 +32,14 @@ static unsigned int udp_in_count = 0, tcp_in_count = 0, icmp_in_count = 0;
 static unsigned int udp_out_count = 0, tcp_out_count = 0, icmp_out_count = 0;
 static unsigned int packets_in_count = 0, packets_out_count = 0;
 
+struct NET net;
+
 static unsigned int hook_func_in(void * priv,
 				 struct sk_buff * skb,
 				 const struct nf_hook_state * state)
 {
     packets_in_count++; // keep track of incoming packet count
+    //net.pac_in++;
 
     /* TODO: we can find out it the packet is ipv4 or ipv6:
      *     nf_ct_l3num(skb->nfct)
@@ -57,6 +60,7 @@ static unsigned int hook_func_in(void * priv,
     {
     case IPPROTO_UDP :
 	udp_in_count++;
+	//net.udp_in++;
 
 	struct udphdr * udp_header = (struct udphdr *) skb_transport_header(skb);
 	src_port  = (unsigned int) ntohs(udp_header->source);
@@ -68,6 +72,7 @@ static unsigned int hook_func_in(void * priv,
 	break;
     case IPPROTO_TCP :
 	tcp_in_count++;
+	//net.tcp_in++;
 
 	struct tcphdr * tcp_header = (struct tcphdr *) skb_transport_header(skb);
 	src_port  = (unsigned int) ntohs(tcp_header->source);
@@ -79,9 +84,11 @@ static unsigned int hook_func_in(void * priv,
 	break;
     case IPPROTO_ICMP : 
 	icmp_in_count++;
+	//net.icmp_in++;
 	/* XXX: ICMP header does not contain source/destination information. */
 	break;
     default : // no special treatment
+    	//net.other_in++;
 	src_ip  = (unsigned int) ip_header->saddr;
 	dest_ip = (unsigned int) ip_header->daddr;
     }
@@ -95,8 +102,6 @@ static unsigned int hook_func_in(void * priv,
 	//different IP addresses
     }*/
 
-    // TODO: send counts to shared buffer?
-
     // let the packet through. We're just observing
     return NF_ACCEPT;
 }
@@ -106,6 +111,7 @@ static unsigned int hook_func_out(void * priv,
 				 const struct nf_hook_state * state)
 {
     packets_out_count++; // keep track of incoming packet count
+    //net.pac_out++;
 
     // get the protocol, length, source IP, and destination IP of a packet caught in the hook:
     struct iphdr * ip_header = (struct iphdr *) skb_network_header(skb);
@@ -122,6 +128,7 @@ static unsigned int hook_func_out(void * priv,
     {
     case IPPROTO_UDP :
 	udp_out_count++;
+	//net.udp_out++;
 
 	struct udphdr * udp_header = (struct udphdr *) skb_transport_header(skb);
 	src_port  = (unsigned int) ntohs(udp_header->source);
@@ -133,6 +140,7 @@ static unsigned int hook_func_out(void * priv,
 	break;
     case IPPROTO_TCP :
 	tcp_out_count++;
+	//net.tcp_out++;
 
 	struct tcphdr * tcp_header = (struct tcphdr *) skb_transport_header(skb);
 	src_port  = (unsigned int) ntohs(tcp_header->source);
@@ -144,7 +152,12 @@ static unsigned int hook_func_out(void * priv,
 	break;
     case IPPROTO_ICMP :
 	icmp_out_count++;
+	//net.icmp_out++;
 	break;
+    default : // no special treatment
+    	//net.other_out++;
+	src_ip  = (unsigned int) ip_header->saddr;
+	dest_ip = (unsigned int) ip_header->daddr;
     }
 
     // let the packet through. We're just observing
