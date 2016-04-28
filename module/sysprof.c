@@ -63,10 +63,17 @@ static const struct file_operations proc_fops =
 
 int __init sysprof_init(void)
 {
+    int err = 0;
+
     printk(KERN_INFO "sysprof: Loading sysprof module...\n");
 
     /* set up shareed memory buffer */
-    create_shmem_buffer();
+    err = create_shmem_buffer();
+    if(err < 0)
+    {
+	printk(KERN_ERR "sysprof: Unable to create shared memory buffer!");
+	return -ENOMEM;
+    }
     
 
     /* setup proc filesystem entry */

@@ -30,6 +30,25 @@ static void * shmem_buffer = NULL;
 
 static int chrdev_mmap(struct file * file, struct vm_area_struct * vma)
 {
+    long vm_start = vma->vm_start;
+    long vm_size = vma->vm_end - vm_start;
+
+    int res;
+    long offset = 0;
+    void * ph_addr = shmem_buffer;
+    unsigned long pfn, vm_addr;
+    for(int i = 0; (i < SHMEM_PAGES) && (offset < vm_size); i++)
+    {
+	offset = i * PAGE_SIZE;
+
+	ph_addr = shmem_buffer + offset;
+	pfn = vmalloc_to_pfn(ph_addr);
+
+	vm_addr = vm_start + offset;
+	if((res = remap_pfn_range(vma, vm_addr, pfn, PAGE_SIZE, PAGE_SHARED)) > 0)
+	    return res;
+    }
+    
     return 0;
 }
 
@@ -41,6 +60,12 @@ static const struct file_operations dev_fops =
     .mmap    = chrdev_mmap,
 };
 
+/**
+ * create_shmem_buffer() - create a shared memory buffer and character device
+ * Allocates a shared memory buffer that will be accessible in userspace via a
+ * memory mapped character device file.  Returns zero on success or a negative
+ * error code.
+ */
 int create_shmem_buffer(void)
 {
     int err = 0;
@@ -70,6 +95,11 @@ int create_shmem_buffer(void)
     return 0;
 }
 
+/**
+ * destroy_shmem_buffer() - destroy a shared memory buffer and character device
+ * Deallocates and cleans up the shared memory buffer and it's associated
+ * character device.
+ */
 void destroy_shmem_buffer(void)
 {
     // clean up the shared memory character device
