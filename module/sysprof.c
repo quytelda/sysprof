@@ -24,10 +24,11 @@
 #include <linux/proc_fs.h>
 
 #include "data/netfilter.h"
+#include "shmem.h"
 
 MODULE_AUTHOR("Quytelda Kahja");
 MODULE_AUTHOR("Roger Xiao");
-MODULE_LICENSE("GPLv3");
+MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Linux Statistical System Profiler");
 
 #define PROC_ENTRY_FILENAME "sysprof"
@@ -64,6 +65,10 @@ int __init sysprof_init(void)
 {
     printk(KERN_INFO "sysprof: Loading sysprof module...\n");
 
+    /* set up shareed memory buffer */
+    create_shmem_buffer();
+    
+
     /* setup proc filesystem entry */
     proc_entry = proc_create(PROC_ENTRY_FILENAME, 0644, NULL, &proc_fops);
     if (!proc_entry)
@@ -89,6 +94,8 @@ void __exit sysprof_exit(void)
 
     /* clean up proc filesystem entry */
     remove_proc_entry(PROC_ENTRY_FILENAME, NULL);
+
+    destroy_shmem_buffer();
 }
 
 module_init(sysprof_init);
