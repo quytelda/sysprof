@@ -61,12 +61,12 @@ analyzeInotifyEvent(struct inotify_event *i)
 	
 }
 
-static void
+static void		//Specific event handler for editing of the etc/shadow file
 analyzeInotifyEvent_shadow(struct inotify_event *i)
 {
 }
 
-static void
+static void		//Specific event handler for editing of the etc/ssh/ssh_config file
 analyzeInotifyEvent_ssh_config(struct inotify_event *i)
 {
 }
