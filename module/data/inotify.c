@@ -3,8 +3,10 @@
 #include "tlpi_hdr.h"
 
 int files_accessed = 0, permissions_changed = 0, files_modified = 0, files_opened = 0;
+//General activity statistics
 
-int ACCESS_ALERT = 0, PERM_CHANGE_ALERT = 0, MODIFY_ALERT = 0, OPEN_ALERT = 0;
+int ACCESS_ALERT = 0, PERM_CHANGE_ALERT = 0, MODIFY_ALERT = 0, READ_ALERT;
+//Sensitive activity statistics
 
 struct inotify_event {
 	__s32		wd;		/* watch descriptor */
@@ -61,24 +63,74 @@ analyzeInotifyEvent(struct inotify_event *i)
 	
 }
 
-static void		//Specific event handler for editing of the etc/shadow file
+static void		//Specific event handler for editing of the etc/shadow file (password hashes)
 analyzeInotifyEvent_shadow(struct inotify_event *i)
 {
+	if (i->mask & IN_ACCESS){					//Nobody but root should access this
+		printk(KERN_INFO "etc/shadow was accessed\n");
+		ACCESS_ALERT++;
+		//Any way to tell the permissions or identify of the user who committed the action????????
+			//I.E. if a daemon user accessed shadow
+	}
+	
+	if (i->mask & IN_ATTRIB){
+		printk(KERN_INFO "etc/shadow had its permissions changed!\n");
+		PERM_CHANGE_ALERT++;
+	}
+	
+	if (i->mask & IN_MODIFY){
+		printk(KERN_INFO "etc/shadow was modified!\n");
+		MODIFY_ALERT++;
+	}
 }
 
 static void		//Specific event handler for editing of the etc/ssh/ssh_config file
 analyzeInotifyEvent_ssh_config(struct inotify_event *i)
 {
+	if (i->mask & IN_ATTRIB){
+		printk(KERN_INFO "etc/ssh/ssh_config had its permissions changed!\n");
+		PERM_CHANGE_ALERT++;
+	}
+	
+	if (i->mask & IN_MODIFY){
+		printk(KERN_INFO "etc/ssh/ssh_config was modified!\n");
+		MODIFY_ALERT++;
+	}
 }
 
 static void
 analyzeInotifyEvent_sudoers(struct inotify_event *i)
 {
+	if (i->mask & IN_ATTRIB){		
+		printk(KERN_INFO "etc/sudoers had its permissions changed!\n");
+		PERM_CHANGE_ALERT++;
+	}
+	
+	if (i->mask & IN_MODIFY){	//Changing this is VERY delicate. Perhaps add 2 to modify alert
+		printk(KERN_INFO "etc/sudoers was modified!\n");
+		MODIFY_ALERT++;
+	}
 }
 
 static void
 analyzeInotifyEvent_passwd(struct inotify_event *i)
 {
+	if (i->mask & IN_ACCESS){
+		printk(KERN_INFO "etc/passwd was accessed\n");
+		ACCESS_ALERT++;
+		//Any way to tell the permissions or identify of the user who committed the action????????
+			//I.E. if a daemon user accessed shadow
+	}
+	
+	if (i->mask & IN_ATTRIB){
+		printk(KERN_INFO "etc/passwd had its permissions changed!\n");
+		PERM_CHANGE_ALERT++;
+	}
+	
+	if (i->mask & IN_MODIFY){		//VERY delicate
+		printk(KERN_INFO "etc/passwd was modified!\n");
+		MODIFY_ALERT++;
+	}
 }
 
 //Call inotifyevent with "etc" and "etc/ssh" as directories to add to the watchlist
