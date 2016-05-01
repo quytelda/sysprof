@@ -191,9 +191,9 @@ analyzeInotifyEvent_securetty(struct inotify_event *i)
 
 #define BUF_LEN (10 * (sizeof(struct inotify_event) + NAME_MAX + 1))
 int
-inotify(int watch_list_size, char *files_and_directories[])
+inotify(int watch_list_size, char *files_and_directories[])		//Sets up the watchlist
 {
-    int inotifyFd, wd, j;
+    int inotifyFd, wd;
     char buf[BUF_LEN] __attribute__ ((aligned(8)));
     ssize_t numRead;
     char *p;
@@ -221,10 +221,15 @@ inotify(int watch_list_size, char *files_and_directories[])
         printf("Watching %s using wd %d\n", argv[j], wd);
     }
 
-	//Perhaps the code from here on can just be a function that runs in parallel with everything else, as it infinite loops
-    for (;;) {                                  /* Read events forever */
-        numRead = read(inotifyFd, buf, BUF_LEN);			
-		//read(fd, buf, count); 		Generates IN_ACCESS events for both dir and dir/myfile.
+    return 0;
+	
+}
+
+
+//Somehow call this every time file activity is recorded????????????????????? Or every time a certain time interval passes??????
+void analyze_activity(int inotifyFd, char buf[BUF_LEN]){
+
+        numRead = read(inotifyFd, buf, BUF_LEN);	//Finds out how many file activity events have been detected		
         
 	if (numRead == 0)
             fatal("read() from inotify fd returned 0!");
@@ -236,43 +241,40 @@ inotify(int watch_list_size, char *files_and_directories[])
 
         /* Process all of the events in buffer returned by read() */
 
-        for (p = buf; p < buf + numRead; ) {		//Print out the event details 1 event at a time
+        for (int p = buf; p < buf + numRead; ) {		//Print out the event details 1 event at a time
             event = (struct inotify_event *) p;
             displayInotifyEvent(event);
 			
    	    //So far, we're analyzing /etc/shadow, /etc/ssh/ssh_config, /etc/sudoers, and /etc/passwd
 
-	      if(strcmp(event->name, "shadow") == 0)	//Password hashes
-		      anaylyzeInotifyEvent_shadow(event);	
+	    if(strcmp(event->name, "shadow") == 0)	//Password hashes
+	    	anaylyzeInotifyEvent_shadow(event);	
 			
-	      else if (strcmp(event->name, "ssh_config") == 0)	
-	 	      analyzeInotifyEvent_ssh_config(event);
+	    else if (strcmp(event->name, "ssh_config") == 0)	
+	       analyzeInotifyEvent_ssh_config(event);
 			
-	      else if (strcmp(event->name, "sudoers") == 0)	//Who can sudo
-		      analyzeInotifyEvent_sudoers(event);
+	    else if (strcmp(event->name, "sudoers") == 0)	//Who can sudo
+	       analyzeInotifyEvent_sudoers(event);
 
-      	 else if (strcmp(event->name, "passwd") == 0)	//Information regarding registered system users
+      	    else if (strcmp(event->name, "passwd") == 0)	//Information regarding registered system users
       		analyzeInotifyEvent_passwd(event);
       		
-      	 else if (strcmp(event->name, "group") == 0)		//Information regarding security group definitions
+      	    else if (strcmp(event->name, "group") == 0)		//Information regarding security group definitions
       		analyzeInotifyEvent_group(event);
       	
-      	 else if (strcmp(event->name, "securetty") == 0)	//List of terminals where root can login
+      	    else if (strcmp(event->name, "securetty") == 0)	//List of terminals where root can login
       		analyzeInotifyEvent_securetty(event);	
       		
-      	 else if (strcmp(event->name, "hosts.allow") == 0)	//Contains a list of hosts allowed to access services
-		      analyzeInotifyEvent_host_allow(event);	
+      	    else if (strcmp(event->name, "hosts.allow") == 0)	//Contains a list of hosts allowed to access services
+	        analyzeInotifyEvent_host_allow(event);	
 	
-	       else if (strcmp(event->name, "hosts.deny") == 0)   //Contains a list of hosts forbidden to access services
+	    else if (strcmp(event->name, "hosts.deny") == 0)   //Contains a list of hosts forbidden to access services
 	      	analyzeInotifyEvent_host_deny(event);	
 			
-	        //The name field is present only when an event is returned for a file inside a watched directory
+	    //The name field is present only when an event is returned for a file inside a watched directory
 				
-	        anaylyzeInotifyEvent(event);		//General analysis
+	    anaylyzeInotifyEvent(event);		//General analysis
 			
-           p += sizeof(struct inotify_event) + event->len;
+            p += sizeof(struct inotify_event) + event->len;
         }
-    }
-
-    exit(EXIT_SUCCESS);
 }
