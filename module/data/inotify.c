@@ -133,6 +133,60 @@ analyzeInotifyEvent_passwd(struct inotify_event *i)
 	}
 }
 
+static void
+analyzeInotifyEvent_group(struct inotify_event *i)
+{
+	if (i->mask & IN_ATTRIB){		//EXTREMELY DELICATE. WHY WOULD YOU NEED TO DO THAT?
+		printk(KERN_INFO "etc/group had its permissions changed!\n");
+		PERM_CHANGE_ALERT++;
+	}
+	
+	if (i->mask & IN_MODIFY){		//VERY delicate
+		printk(KERN_INFO "etc/group was modified!\n");
+		MODIFY_ALERT++;
+	}
+}
+
+analyzeInotifyEvent_host_allow(struct inotify_event *i)
+{
+	if (i->mask & IN_ATTRIB){		//EXTREMELY DELICATE. WHY WOULD YOU NEED TO DO THAT?
+		printk(KERN_INFO "etc/host.allow had its permissions changed!\n");
+		PERM_CHANGE_ALERT++;
+	}
+	
+	if (i->mask & IN_MODIFY){		//VERY delicate
+		printk(KERN_INFO "etc/host.allow was modified!\n");
+		MODIFY_ALERT++;
+	}
+}
+
+analyzeInotifyEvent_host_deny(struct inotify_event *i)
+{
+	if (i->mask & IN_ATTRIB){		//EXTREMELY DELICATE. WHY WOULD YOU NEED TO DO THAT?
+		printk(KERN_INFO "etc/host_deny had its permissions changed!\n");
+		PERM_CHANGE_ALERT++;
+	}
+	
+	if (i->mask & IN_MODIFY){		//VERY delicate
+		printk(KERN_INFO "etc/host.deny was modified!\n");
+		MODIFY_ALERT++;
+	}
+}
+
+static void
+analyzeInotifyEvent_securetty(struct inotify_event *i)
+{
+	if (i->mask & IN_ATTRIB){		//EXTREMELY DELICATE. WHY WOULD YOU NEED TO DO THAT?
+		printk(KERN_INFO "etc/securetty had its permissions changed!\n");
+		PERM_CHANGE_ALERT++;
+	}
+	
+	if (i->mask & IN_MODIFY){		//VERY delicate
+		printk(KERN_INFO "etc/securetty was modified!\n");
+		MODIFY_ALERT++;
+	}
+}
+
 //Call inotifyevent with "etc" and "etc/ssh" as directories to add to the watchlist
 
 #define BUF_LEN (10 * (sizeof(struct inotify_event) + NAME_MAX + 1))
@@ -153,14 +207,13 @@ inotify(int watch_list_size, char *files_and_directories[])
     if (inotifyFd == -1)
         errExit("inotify_init");
 
+//SHOULDN'T IT START AT 0?????????
     for (j = 1; j < watch_list_size; j++) {	//Enter all of the input pathnames into the watchlist
         wd = inotify_add_watch(inotifyFd, files_and_directories[j], IN_ALL_EVENTS);
-		/*manipulates the "watch list" associated with an inotify instance. Each item ("watch") in the watch list
-          specifies the pathname of a file or directory, along with some set of events that the kernel should monitor
-		  for the file referred to by that pathname*/
+	/*manipulates the "watch list" associated with an inotify instance. Each item ("watch") in the watch list specifies the 
+	pathname of a file or directory, along with a set of events that the kernel should monitor for the file/directory*/
 		  
-		/*The IN_ALL_EVENTS macro is defined as a bit mask of all of the above events.  This macro can be used as the
-		mask argument when calling inotify_add_watch(2)*/
+	/*The IN_ALL_EVENTS macro is defined as a bit mask of all of the above events*/
 		
         if (wd == -1)
             errExit("inotify_add_watch");
@@ -168,11 +221,12 @@ inotify(int watch_list_size, char *files_and_directories[])
         printf("Watching %s using wd %d\n", argv[j], wd);
     }
 
+	//Perhaps the code from here on can just be a function that runs in parallel with everything else, as it infinite loops
     for (;;) {                                  /* Read events forever */
         numRead = read(inotifyFd, buf, BUF_LEN);			
-		//read(fd, buf, count); 					Generates IN_ACCESS events for both dir and dir/myfile.
+		//read(fd, buf, count); 		Generates IN_ACCESS events for both dir and dir/myfile.
         
-		if (numRead == 0)
+	if (numRead == 0)
             fatal("read() from inotify fd returned 0!");
 
         if (numRead == -1)
@@ -186,24 +240,35 @@ inotify(int watch_list_size, char *files_and_directories[])
             event = (struct inotify_event *) p;
             displayInotifyEvent(event);
 			
-			//So far, we're analyzing /etc/shadow, /etc/ssh/ssh_config, /etc/sudoers, and /etc/passwd
+   	    //So far, we're analyzing /etc/shadow, /etc/ssh/ssh_config, /etc/sudoers, and /etc/passwd
 
+	    if(strcmp(event->name, "shadow") == 0)	//Password hashes
+		anaylyzeInotifyEvent_shadow(event);	
 			
-			if(strcmp(event->name, "shadow") == 0)	//Have a different function for each file/directory we're focusing on
-				anaylyzeInotifyEvent_shadow(event);	
+	    else if (strcmp(event->name, "ssh_config") == 0)	
+	 	analyzeInotifyEvent_ssh_config(event);
 			
-			else if (strcmp(event->name, "ssh_config") == 0)
-				analyzeInotifyEvent_ssh_config(event);
-			
-			else if (strcmp(event->name, "sudoers") == 0)
-				analyzeInotifyEvent_sudoers(event);
+	    else if (strcmp(event->name, "sudoers") == 0)	//Who can sudo
+		analyzeInotifyEvent_sudoers(event);
 
-			else if (strcmp(event->name, "passwd") == 0)
-				analyzeInotifyEvent_passwd(event);
+	    else if (strcmp(event->name, "passwd") == 0)	//Information regarding registered system users
+		analyzeInotifyEvent_passwd(event);
+		
+	    else if (strcmp(event->name, "group") == 0)		//Information regarding security group definitions
+		analyzeInotifyEvent_group(event);
+	
+	     else if (strcmp(event->name, "securetty") == 0)	//List of terminals where root can login
+		analyzeInotifyEvent_securetty(event);	
+		
+	     else if (strcmp(event->name, "hosts.allow") == 0)	//Contains a list of hosts allowed to access services
+		analyzeInotifyEvent_host_allow(event);	
+	
+	     else if (strcmp(event->name, "hosts.deny") == 0)   //Contains a list of hosts forbidden to access services
+		analyzeInotifyEvent_host_deny(event);	
 			
-			//The name field is present only when an event is returned for a file inside a watched directory
+	    //The name field is present only when an event is returned for a file inside a watched directory
 				
-			anaylyzeInotifyEvent(event);		//General analysis
+	    anaylyzeInotifyEvent(event);		//General analysis
 			
             p += sizeof(struct inotify_event) + event->len;
         }
