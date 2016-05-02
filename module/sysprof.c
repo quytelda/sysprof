@@ -82,9 +82,10 @@ int __init sysprof_init(void)
     init_netfilter();
     
     //ADDED! IT HAS AN INFINITE LOOP IN IT SO IT MIGHT NOT BE A GOOD IDEA TO PUT THIS HERE!!!!!!!!!!
-    *char[2] file_and_directory_names;
+    *char[3] file_and_directory_names;
     files_and_directory_names[0] = "etc";
     files_and_directory_names[1] = "etc/ssh";
+    files_and_directory_names[2] = "etc/apt";
     
     inotify(2, file_and_directory_names);
 
