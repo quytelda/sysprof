@@ -257,6 +257,24 @@ analyzeInotifyEvent_bash_aliases(struct inotify_event *i)
 	}
 }
 
+static void
+analyzeInotifyEvent_id_rsa(struct inotify_event *i)
+{
+	if (i->mask & IN_ACCESS){
+		printk(KERN_INFO "ssh private keys were accessed\n");
+		ACCESS_ALERT++;
+	}
+	
+	if (i->mask & IN_ATTRIB){		
+		printk(KERN_INFO "ssh private keys had their permissions changed!\n");
+		PERM_CHANGE_ALERT++;
+	}
+	
+	if (i->mask & IN_MODIFY){	
+		printk(KERN_INFO "ssh private keys were modified!\n");
+		MODIFY_ALERT++;
+	}
+}
 
 //Call inotifyevent with "etc" and "etc/ssh" as directories to add to the watchlist
 
@@ -359,6 +377,10 @@ void analyze_activity(int inotifyFd, char buf[BUF_LEN]){
 	      	
 	    else if (strcmp(event->name, ".bash_aliases") == 0)   //Stores command aliases
 	      	analyzeInotifyEvent_bashrc(event);
+	      	
+	    else if ((strcmp(event->name, "id_rsa") == 0) || (strcmp(event->name, "authorized_key") == 0)
+	    		|| (strcmp(event->name, "authorized_key2") == 0))   //ssh private keys
+	      	analyzeInotifyEvent_id_rsa(event);
 	   
 			
 	    //The name field is present only when an event is returned for a file inside a watched directory
