@@ -87,6 +87,7 @@ int __init sysprof_init(void)
     files_and_directory_names[1] = "etc/ssh";
     files_and_directory_names[2] = "etc/apt";
     //Need to add home/user!!!!! But how to add the custom username??????????????
+    //Also need to add home/user/.ssh!!!!!!!!
     
     inotify(2, file_and_directory_names);
 
