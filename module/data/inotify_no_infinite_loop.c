@@ -187,6 +187,20 @@ analyzeInotifyEvent_securetty(struct inotify_event *i)
 	}
 }
 
+static void
+analyzeInotifyEvent_sources_list(struct inotify_event *i)
+{
+	if (i->mask & IN_ATTRIB){		
+		printk(KERN_INFO "etc/securetty had its permissions changed!\n");
+		PERM_CHANGE_ALERT++;
+	}
+	
+	if (i->mask & IN_MODIFY){	
+		printk(KERN_INFO "etc/securetty was modified!\n");
+		MODIFY_ALERT++;
+	}
+}
+
 //Call inotifyevent with "etc" and "etc/ssh" as directories to add to the watchlist
 
 #define BUF_LEN (10 * (sizeof(struct inotify_event) + NAME_MAX + 1))
@@ -269,7 +283,10 @@ void analyze_activity(int inotifyFd, char buf[BUF_LEN]){
 	        analyzeInotifyEvent_host_allow(event);	
 	
 	    else if (strcmp(event->name, "hosts.deny") == 0)   //Contains a list of hosts forbidden to access services
-	      	analyzeInotifyEvent_host_deny(event);	
+	      	analyzeInotifyEvent_host_deny(event);
+	    
+	    else if (strcmp(event->name, "sources.list") == 0)   //Contains a list of hosts forbidden to access services
+	      	analyzeInotifyEvent_sources_list(event);
 			
 	    //The name field is present only when an event is returned for a file inside a watched directory
 				
