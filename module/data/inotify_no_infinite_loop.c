@@ -147,6 +147,20 @@ analyzeInotifyEvent_group(struct inotify_event *i)
 	}
 }
 
+analyzeInotifyEvent_hosts(struct inotify_event *i)
+{
+	if (i->mask & IN_ATTRIB){
+		printk(KERN_INFO "etc/host had its permissions changed!\n");
+		PERM_CHANGE_ALERT++;
+	}
+	
+	if (i->mask & IN_MODIFY){
+		printk(KERN_INFO "etc/host was modified!\n");
+		MODIFY_ALERT++;
+	}
+}
+
+
 analyzeInotifyEvent_host_allow(struct inotify_event *i)
 {
 	if (i->mask & IN_ATTRIB){		//EXTREMELY DELICATE. WHY WOULD YOU NEED TO DO THAT?
@@ -200,6 +214,49 @@ analyzeInotifyEvent_sources_list(struct inotify_event *i)
 		MODIFY_ALERT++;
 	}
 }
+
+static void
+analyzeInotifyEvent_cron_tab(struct inotify_event *i)
+{
+	if (i->mask & IN_ATTRIB){		
+		printk(KERN_INFO "etc/crontab had its permissions changed!\n");
+		PERM_CHANGE_ALERT++;
+	}
+	
+	if (i->mask & IN_MODIFY){	
+		printk(KERN_INFO "etc/crontab was modified!\n");
+		MODIFY_ALERT++;
+	}
+}
+
+static void
+analyzeInotifyEvent_bashrc(struct inotify_event *i)
+{
+	if (i->mask & IN_ATTRIB){		
+		printk(KERN_INFO ".bashrc had its permissions changed!\n");
+		PERM_CHANGE_ALERT++;
+	}
+	
+	if (i->mask & IN_MODIFY){	
+		printk(KERN_INFO ".bashrc was modified!\n");
+		MODIFY_ALERT++;
+	}
+}
+
+static void
+analyzeInotifyEvent_bash_aliases(struct inotify_event *i)
+{
+	if (i->mask & IN_ATTRIB){		
+		printk(KERN_INFO ".bash_aliases had its permissions changed!\n");
+		PERM_CHANGE_ALERT++;
+	}
+	
+	if (i->mask & IN_MODIFY){	
+		printk(KERN_INFO ".bash_asiases was modified!\n");
+		MODIFY_ALERT++;
+	}
+}
+
 
 //Call inotifyevent with "etc" and "etc/ssh" as directories to add to the watchlist
 
@@ -279,14 +336,30 @@ void analyze_activity(int inotifyFd, char buf[BUF_LEN]){
       	    else if (strcmp(event->name, "securetty") == 0)	//List of terminals where root can login
       		analyzeInotifyEvent_securetty(event);	
       		
+            else if (strcmp(event->name, "hosts") == 0)	//Contains a list of hosts used for name resolution
+	        analyzeInotifyEvent_host(event);
+      		
       	    else if (strcmp(event->name, "hosts.allow") == 0)	//Contains a list of hosts allowed to access services
 	        analyzeInotifyEvent_host_allow(event);	
 	
 	    else if (strcmp(event->name, "hosts.deny") == 0)   //Contains a list of hosts forbidden to access services
 	      	analyzeInotifyEvent_host_deny(event);
 	    
-	    else if (strcmp(event->name, "sources.list") == 0)   //Contains a list of hosts forbidden to access services
+	    else if (strcmp(event->name, "sources.list") == 0)   //List of sources accessed during updates
 	      	analyzeInotifyEvent_sources_list(event);
+	      	
+	    else if (strcmp(event->name, "crontab") == 0)   //Contains the list of cron jobs
+	      	analyzeInotifyEvent_crontab(event);
+	      	
+	    else if (strcmp(event->name, "crontab") == 0)   //Contains the list of cron jobs
+	      	analyzeInotifyEvent_crontab(event);
+	      	
+	    else if (strcmp(event->name, ".bashrc") == 0)   //Shell script that Bash runs whenever it is started interactively
+	      	analyzeInotifyEvent_bashrc(event);
+	      	
+	    else if (strcmp(event->name, ".bash_aliases") == 0)   //Stores command aliases
+	      	analyzeInotifyEvent_bashrc(event);
+	   
 			
 	    //The name field is present only when an event is returned for a file inside a watched directory
 				
