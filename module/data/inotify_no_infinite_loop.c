@@ -355,7 +355,7 @@ void analyze_activity(int inotifyFd, char buf[BUF_LEN]){
       		analyzeInotifyEvent_securetty(event);	
       		
             else if (strcmp(event->name, "hosts") == 0)	//Contains a list of hosts used for name resolution
-	        analyzeInotifyEvent_host(event);
+	        analyzeInotifyEvent_hosts(event);
       		
       	    else if (strcmp(event->name, "hosts.allow") == 0)	//Contains a list of hosts allowed to access services
 	        analyzeInotifyEvent_host_allow(event);	
