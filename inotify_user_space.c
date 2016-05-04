@@ -115,8 +115,6 @@ analyzeInotifyEvent_sudoers(struct inotify_event *i)
 static void
 analyzeInotifyEvent_passwd(struct inotify_event *i)
 {
-	printf("Passwd!\n");
-
 	if (i->mask & IN_ACCESS){
 		printf("etc/passwd was accessed\n");
 		ACCESS_ALERT++;
@@ -152,7 +150,6 @@ analyzeInotifyEvent_group(struct inotify_event *i)
 static void
 analyzeInotifyEvent_hosts(struct inotify_event *i)
 {
-	printf("Hosts accessed\n");
 
 	if (i->mask & IN_ACCESS){
 		printf("etc/hosts was accessed\n");
