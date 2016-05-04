@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/inotify.h>
+#include <sys/timeb.h>
 #include <limits.h>
 #include <string.h>
 #include <unistd.h>
@@ -330,8 +331,8 @@ void analyze_activity(int inotifyFd, char buf[BUF_LEN]){
       	    else if (strcmp(event->name, "securetty") == 0)	//List of terminals where root can login
       		analyzeInotifyEvent_securetty(event);	
 
-            else if (strcmp(event->name, "hosts") == 0)	//Contains a list of hosts used for name resolution
-	        analyzeInotifyEvent_hosts(event);
+            //else if (strcmp(event->name, "hosts") == 0)	//Contains a list of hosts used for name resolution
+	      //  analyzeInotifyEvent_hosts(event);
       		
       	    else if (strcmp(event->name, "hosts.allow") == 0)	//Contains a list of hosts allowed to access services
 	        analyzeInotifyEvent_host_allow(event);	
@@ -391,7 +392,6 @@ main(int watch_list_size, char *files_and_directories[])		//Sets up the watchlis
 	return -1;
     }
 
-//SHOULDN'T IT START AT 0?????????
     for (j = 1; j < watch_list_size; j++) {	//Enter all of the input pathnames into the watchlist
         wd = inotify_add_watch(inotifyFd, files_and_directories[j], IN_ALL_EVENTS);
 	/*manipulates the "watch list" associated with an inotify instance. Each item ("watch") in the watch list specifies the 
@@ -407,27 +407,37 @@ main(int watch_list_size, char *files_and_directories[])		//Sets up the watchlis
         printf("Watching %s using wd %d\n", files_and_directories[j], wd);
     }
 
+    struct timeb current, timestamp;
+
+    ftime(&timestamp);
+
     while(1){
 
-	sleep(15);
+        //sleep(15);
 
-	analyze_activity(inotifyFd, buf);
+        analyze_activity(inotifyFd, buf);
 
-	printf("files accessed: %i, attributes changed: %i, files modified %i, files opened %i\n", files_accessed, permissions_changed, files_modified, files_opened);
+        ftime(&current);
 
-	printf("access alerts: %i, attribute alerts: %i, modify alerts %i, read alerts %i\n", ACCESS_ALERT, PERM_CHANGE_ALERT, MODIFY_ALERT, READ_ALERT);
+        if(current.time == timestamp.time + 15){
 
-	files_accessed = 0;
-	permissions_changed = 0;
-	files_modified = 0;
-	files_opened = 0;
+                timestamp.time = current.time;
 
-	ACCESS_ALERT = 0;
-	PERM_CHANGE_ALERT = 0;
-	MODIFY_ALERT = 0;
-	READ_ALERT = 0;
+                printf("files accessed: %i, attributes changed: %i, files modified %i, files opened %i\n", files_accessed, permissions_changed, files_modified, files_opened);
+                printf("access alerts: %i, attribute alerts: %i, modify alerts %i, read alerts %i\n", ACCESS_ALERT, PERM_CHANGE_ALERT, MODIFY_ALERT, READ_ALERT);
 
+                files_accessed = 0;
+                permissions_changed = 0;
+                files_modified = 0;
+                files_opened = 0;
+
+                ACCESS_ALERT = 0;
+                PERM_CHANGE_ALERT = 0;
+                MODIFY_ALERT = 0;
+                READ_ALERT = 0;
+        }
     }
+
 
     return 0;
 	
