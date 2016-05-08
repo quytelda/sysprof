@@ -1,9 +1,0 @@
-Figure out how to integrate the bash scripts with the rest of the project
-
-Get the bash scripts to send to the shared buffer
-
-Run all the statistic gathering code on someone's laptop (not an EWS Putty) to get better data
-
-Modify netfilter code to poll on a time interval basis, and then run it to gather packet data
-
-Derive better heuristics for inotify

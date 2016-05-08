@@ -63,11 +63,9 @@ static const struct file_operations proc_fops =
 
 int __init sysprof_init(void)
 {
-    printk(KERN_INFO "sysprof: Loading sysprof module...\n");
+    int err = 0;
 
-    /* set up shareed memory buffer */
-    create_shmem_buffer();
-    
+    printk(KERN_INFO "sysprof: Loading sysprof module...\n");    
 
     /* setup proc filesystem entry */
     proc_entry = proc_create(PROC_ENTRY_FILENAME, 0644, NULL, &proc_fops);
@@ -90,6 +88,19 @@ int __init sysprof_init(void)
     //Also need to add home/user/.ssh!!!!!!!!
     
     //inotify(2, file_and_directory_names);
+
+    /* set up shareed memory buffer */
+    struct shmem_operations shmem_ops =
+    {
+	.report = netfilter_report,
+    };
+    err = create_shmem_buffer(&shmem_ops);
+    if(err < 0)
+    {
+	printk(KERN_ERR "sysprof: Unable to create shared memory buffer!");
+	return -ENOMEM;
+    }
+
 
     printk(KERN_INFO "sysprof: Loaded module.");
     return 0;
