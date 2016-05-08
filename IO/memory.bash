@@ -3,7 +3,7 @@
 for i in {1..100}
 do
         free -m > memory.txt
-        python memory.py
-        echo ""
-        sleep 15
+        python memory.py >> memory_output.txt
+        echo "" >> memory_output.txt
+        sleep 60
 done
