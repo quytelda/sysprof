@@ -421,7 +421,7 @@ main(int watch_list_size, char *files_and_directories[])		//Sets up the watchlis
 
         ftime(&current);
 
-        if(current.time == timestamp.time + 15){
+        if(current.time == timestamp.time + 60){
 
                 timestamp.time = current.time;
 
