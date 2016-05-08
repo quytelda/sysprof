@@ -67,12 +67,12 @@ analyzeInotifyEvent(struct inotify_event *i)
 static void		//Specific event handler for editing of the etc/shadow file (password hashes)
 analyzeInotifyEvent_shadow(struct inotify_event *i)
 {
-	if (i->mask & IN_ACCESS){					//Nobody but root should access this
+	/*if (i->mask & IN_ACCESS){					//Nobody but root should access this
 		printf("etc/shadow was accessed\n");
 		ACCESS_ALERT++;
 		//Any way to tell the permissions or identify of the user who committed the action????????
 			//I.E. if a daemon user accessed shadow
-	}
+	}*/
 	
 	if (i->mask & IN_ATTRIB){
 		printf("etc/shadow had its permissions changed!\n");
