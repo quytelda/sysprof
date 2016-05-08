@@ -9,19 +9,23 @@
 
 int main(){
 
-	//size_t FILESIZE = sizeof(struct nf_data);
+	//Constants
 	int PAGE_SIZE = getpagesize();
 	size_t FILESIZE = PAGE_SIZE * 32;
-	char * FILEPATH = "/I/Dont/Know";
+	char * FILEPATH = "/dev/sysprof";
 	sigset_t mask;
 	int index = 0;
 
+	//Setup to recieve signal from kernel module
 	sigfillset(&mask);
 	sigdelset(&mask, SIGRTMIN+1);
 	sigsuspend(&mask);
 
 	while (1) {
-		  (void) sigsuspend(&mask);			
+			//Wait on signal
+		  //(void) sigsuspend(&mask);		
+
+			//Extract data	
 			int fd = open(FILEPATH, O_RDONLY);
 			if (fd == -1) 
 			{
@@ -33,8 +37,11 @@ int main(){
 			if(map + index * sizeof(struct nf_data) > map + FILESIZE)
 				index = 0;
 			struct nf_data current = all[index];
-			printf("pack in %d\npack out %d", current.pac_in, current.pac_out);
 			index++;
+
+			//Use data
+			printf("pack in %d\npack out %d", current.pac_in, current.pac_out);
 	}
 
+	return 0;
 }
