@@ -27,18 +27,24 @@
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
 
-static unsigned int ipv4_count = 0, ipv6_count = 0;
+#include "include/stats.h"
+
 static unsigned int udp_in_count = 0, tcp_in_count = 0, icmp_in_count = 0;
 static unsigned int udp_out_count = 0, tcp_out_count = 0, icmp_out_count = 0;
 static unsigned int packets_in_count = 0, packets_out_count = 0;
 
-struct NET net;
-//net.source_ips =  malloc(1000 * sizeof *net.);
-//net.source_ports =  malloc(1000 * sizeof *net.s);
-//net.dest_ips =  malloc(1000 * sizeof *net.s);
-//net.dest_ports =  malloc(1000 * sizeof *net.s);
+ssize_t netfilter_report(void ** data)
+{
+    struct nf_data nfdata =
+    {
+	.pac_in  = packets_in_count,
+	.pac_out = packets_out_count,
+    };
 
-//Should the hook functions pass in a NET struct????????
+    *data = (void *) &nfdata;
+    return sizeof(struct nf_data);
+}
+
 static unsigned int hook_func_in(void * priv,
 				 struct sk_buff * skb,
 				 const struct nf_hook_state * state)
