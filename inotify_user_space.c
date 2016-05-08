@@ -50,16 +50,16 @@ displayInotifyEvent(struct inotify_event *i)
 static void
 analyzeInotifyEvent(struct inotify_event *i)
 {
-	if (i->mask & IN_ACCESS);        //File was accessed
+	if (i->mask & IN_ACCESS)	       //File was accessed
 		files_accessed++;
 	
-	if (i->mask & IN_ATTRIB);		//Permissions were changed
+	if (i->mask & IN_ATTRIB)		//Permissions were changed
 		permissions_changed++;
 	
-	if (i->mask & IN_MODIFY);		//File was modified
+	if (i->mask & IN_MODIFY)		//File was modified
 		files_modified++;
 	
-	if (i->mask & IN_OPEN);			//File was opened
+	if (i->mask & IN_OPEN)			//File was opened
 		files_opened++;
 	
 }
