@@ -26,7 +26,7 @@
 #include <linux/icmp.h>
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
-#include <stats.h>
+#include "../../include/stats.h"
 
 static unsigned int udp_in_count = 0, tcp_in_count = 0, icmp_in_count = 0;
 static unsigned int udp_out_count = 0, tcp_out_count = 0, icmp_out_count = 0;
@@ -34,13 +34,15 @@ static unsigned int packets_in_count = 0, packets_out_count = 0;
 
 ssize_t netfilter_report(void ** data)
 {
-    struct nf_data nfdata =
-    {
-	.pac_in  = packets_in_count,
-	.pac_out = packets_out_count,
-    };
+    struct nf_data * nfdata = (struct nf_data *)
+	kmalloc(sizeof(struct nf_data), GFP_KERNEL);
 
-    *data = (void *) &nfdata;
+    nfdata->pac_in = packets_in_count;
+    nfdata->pac_out = packets_out_count;
+    packets_in_count = 0;
+    packets_out_count = 0;
+
+    *data = (void *) nfdata;
     return sizeof(struct nf_data);
 }
 

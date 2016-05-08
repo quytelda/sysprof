@@ -1,4 +1,4 @@
-ccflags-y := -std=gnu99 -Wno-declaration-after-statement -I $(src)/include
+ccflags-y := -std=gnu99 -Wno-declaration-after-statement
 
 obj-m += sysprof.o
 sysprof-objs := module/sysprof.o module/data/netfilter.o module/shmem.o
