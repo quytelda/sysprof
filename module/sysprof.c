@@ -78,16 +78,6 @@ int __init sysprof_init(void)
 
     /* set up network monitoring */
     init_netfilter();
-    
-    //ADDED! IT HAS AN INFINITE LOOP IN IT SO IT MIGHT NOT BE A GOOD IDEA TO PUT THIS HERE!!!!!!!!!!
-    //*char[3] file_and_directory_names;
-    //files_and_directory_names[0] = "etc";
-    //files_and_directory_names[1] = "etc/ssh";
-    //files_and_directory_names[2] = "etc/apt";
-    //Need to add home/user!!!!! But how to add the custom username??????????????
-    //Also need to add home/user/.ssh!!!!!!!!
-    
-    //inotify(2, file_and_directory_names);
 
     /* set up shareed memory buffer */
     struct shmem_operations shmem_ops =
