@@ -19,11 +19,6 @@
  * along with Sysprof.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-struct timespec {
-    time_t  tv_sec;     /* seconds */
-    long    tv_nsec;    /* nanoseconds */
-};
-
 struct nf_data {
     //inputs
     unsigned int pac_in;
