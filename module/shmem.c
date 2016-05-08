@@ -20,14 +20,19 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/slab.h>
 #include <linux/mm.h>
 #include <linux/fs.h>
 #include <linux/cdev.h>
+#include <linux/workqueue.h>
 
 #include "shmem.h"
 
 static void * shmem_buffer = NULL;
 static void * shmem_cursor = NULL;
+
+static struct workqueue_struct * workqueue;
+static struct delayed_work * sample_work;
 
 static int chrdev_mmap(struct file * file, struct vm_area_struct * vma)
 {
@@ -51,6 +56,15 @@ static int chrdev_mmap(struct file * file, struct vm_area_struct * vma)
     }
     
     return 0;
+}
+
+static void sample_data(struct work_struct * work)
+{
+    printk(KERN_ALERT "Sampling data...\n");
+
+    // requeue work to be executed again
+    if(!queue_delayed_work(workqueue, sample_work, msecs_to_jiffies(SAMPLE_DELAY)))
+	printk(KERN_ERR "sysprof: Unable to queue sampling task.");
 }
 
 static dev_t dev_num;
@@ -96,6 +110,16 @@ int create_shmem_buffer(void)
     // point the cursor at the start of the memory region
     shmem_cursor = shmem_buffer;
 
+    // set up delayed workqueue
+    workqueue = create_workqueue(SHMEM_WQ_NAME);
+
+    sample_work = (struct delayed_work *)
+	kmalloc(sizeof(struct delayed_work), GFP_KERNEL);
+    INIT_DELAYED_WORK(sample_work, sample_data);
+
+    if(!queue_delayed_work(workqueue, sample_work, msecs_to_jiffies(SAMPLE_DELAY)))
+	printk(KERN_ERR "sysprof: Unable to queue sampling task.");
+
     return 0;
 }
 
@@ -106,6 +130,12 @@ int create_shmem_buffer(void)
  */
 void destroy_shmem_buffer(void)
 {
+    // destroy period workqueue
+    // XXX: do we need to flush this queue?
+    cancel_delayed_work(sample_work);
+    destroy_workqueue(workqueue);
+    kfree(sample_work);
+
     // clean up the shared memory character device
     cdev_del(dev);
     unregister_chrdev_region(dev_num, 1);

@@ -21,6 +21,8 @@
 #define SHMEM_PAGES 32
 #define SHMEM_SIZE (PAGE_SIZE * SHMEM_PAGES)
 #define SHMEM_CDEV_NAME "sysprof"
+#define SHMEM_WQ_NAME "sysprof"
+#define SAMPLE_DELAY 5000
 
 /**
  * insert_struct() - adds a struct to the shared memory buffer
