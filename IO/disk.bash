@@ -7,5 +7,5 @@ do
         iostat -d > disk.txt
         python disk.py >> disk_output.txt
         echo "" >> disk_output.txt
-        sleep 15
+        sleep 60
 done

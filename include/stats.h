@@ -1,4 +1,4 @@
-/* 
+/*
  * stats.h - Linux Statistical System Profilerure
  * Definitions for shared data structures.
  *
@@ -24,43 +24,18 @@ struct timespec {
     long    tv_nsec;    /* nanoseconds */
 };
 
-struct FS {
-    struct timespec timestamp;
-    int UID;
-    unsigned int R;
-    unsigned int W;
-    unsigned int X;
-};
-
-struct NET {
-    struct timespec timestamp;
-   
-   //inputs
+struct nf_data {
+    //inputs
     unsigned int pac_in;
     unsigned int udp_in;
     unsigned int tcp_in;
     unsigned int icmp_in;
     unsigned int other_in;
-    
-    //unsigned int * source_ips;
-    unsigned int source_ips[1000];
-    //unsigned int * source_ports;
-    unsigned int source_ports[1000];
-    
+
     //outputs
     unsigned int pac_out;
     unsigned int udp_out;
     unsigned int tcp_out;
     unsigned int icmp_out;
     unsigned int other_out;
-    
-    //unsigned int * dest_ips;
-    unsigned int dest_ips[1000];
-    //unsigned int * dest_ports;
-    unsigned int dest_ports[1000];
-    
 };
-
-#typedef TIMESPEC_DEFAULT struct timespec {0, 0};
-#typedef FS_DEFAULT  struct FS  {TIMESPEC_DEFAULT,0,0,0,0};
-#typedef NET_DEFAULT struct NET {TIMESPEC_DEFUALT,0,0};

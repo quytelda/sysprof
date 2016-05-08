@@ -1,0 +1,9 @@
+Inotify is currently an executable that takes in as arguments the directories the user wishes to monitor. So far I've been running
+it as ./inotify /etc /etc/ssh /home/rxiao3. Every 15 seconds (this is adjustable), it will spit out the following statistics in 
+2 lines:
+
+Line 1: how many files have been accessed, how many files have had their attributes changed, how many files have been modified, and
+how many files have been opened (all since the last 15 second interval)
+
+Line 2: the access alerts, the attribute modification alerts, the modification alerts, and the read alerts 
+(all since the last 15 second interval). Alerts indicate potentially suspicious activity

@@ -67,12 +67,12 @@ analyzeInotifyEvent(struct inotify_event *i)
 static void		//Specific event handler for editing of the etc/shadow file (password hashes)
 analyzeInotifyEvent_shadow(struct inotify_event *i)
 {
-	if (i->mask & IN_ACCESS){					//Nobody but root should access this
+	/*if (i->mask & IN_ACCESS){					//Nobody but root should access this
 		printf("etc/shadow was accessed\n");
 		ACCESS_ALERT++;
 		//Any way to tell the permissions or identify of the user who committed the action????????
 			//I.E. if a daemon user accessed shadow
-	}
+	}*/
 	
 	if (i->mask & IN_ATTRIB){
 		printf("etc/shadow had its permissions changed!\n");
@@ -116,12 +116,12 @@ analyzeInotifyEvent_sudoers(struct inotify_event *i)
 static void
 analyzeInotifyEvent_passwd(struct inotify_event *i)
 {
-	if (i->mask & IN_ACCESS){
+	/*if (i->mask & IN_ACCESS){
 		printf("etc/passwd was accessed\n");
 		ACCESS_ALERT++;
 		//Any way to tell the permissions or identify of the user who committed the action????????
 			//I.E. if a daemon user accessed shadow
-	}
+	}*/
 	
 	if (i->mask & IN_ATTRIB){
 		printf("etc/passwd had its permissions changed!\n");
@@ -132,6 +132,8 @@ analyzeInotifyEvent_passwd(struct inotify_event *i)
 		printf("etc/passwd was modified!\n");
 		MODIFY_ALERT++;
 	}
+	
+	
 }
 
 static void
@@ -152,10 +154,10 @@ static void
 analyzeInotifyEvent_hosts(struct inotify_event *i)
 {
 
-	if (i->mask & IN_ACCESS){
+	/*if (i->mask & IN_ACCESS){
 		printf("etc/hosts was accessed\n");
 		ACCESS_ALERT++;
-	}
+	}*/
 
 	if (i->mask & IN_ATTRIB){
 		printf("etc/host had its permissions changed!\n");
@@ -419,7 +421,7 @@ main(int watch_list_size, char *files_and_directories[])		//Sets up the watchlis
 
         ftime(&current);
 
-        if(current.time == timestamp.time + 15){
+        if(current.time == timestamp.time + 60){
 
                 timestamp.time = current.time;
 
