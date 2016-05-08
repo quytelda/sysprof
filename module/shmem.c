@@ -25,6 +25,7 @@
 #include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/workqueue.h>
+#include <linux/vmalloc.h>
 
 #include "shmem.h"
 
