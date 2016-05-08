@@ -22,7 +22,7 @@
 #define SHMEM_SIZE (PAGE_SIZE * SHMEM_PAGES)
 #define SHMEM_CDEV_NAME "sysprof"
 #define SHMEM_WQ_NAME "sysprof"
-#define SAMPLE_DELAY 5000
+#define SAMPLE_DELAY 60000 // 1 minute (ms)
 
 /**
  * insert_struct() - adds a struct to the shared memory buffer
@@ -33,7 +33,12 @@
  */
 #define insert_struct(s_ptr, type): insert_data((void *) s_ptr, sizeof(type))
 
-int create_shmem_buffer(void);
+struct shmem_operations
+{
+    ssize_t (*report) (void ** data);
+};
+
+int create_shmem_buffer(struct shmem_operations * shmem_ops);
 void destroy_shmem_buffer(void);
 
-void insert_data(void * data, ssize_t bytes);
+void insert_data(void * data, size_t bytes);

@@ -31,6 +31,8 @@
 static void * shmem_buffer = NULL;
 static void * shmem_cursor = NULL;
 
+static struct shmem_operations * shmem_ops;
+
 static struct workqueue_struct * workqueue;
 static struct delayed_work * sample_work;
 
@@ -62,6 +64,11 @@ static void sample_data(struct work_struct * work)
 {
     printk(KERN_ALERT "Sampling data...\n");
 
+    void * data = NULL;
+    ssize_t data_size = shmem_ops->report(&data);
+
+    insert_data(data, (size_t) data_size);
+
     // requeue work to be executed again
     if(!queue_delayed_work(workqueue, sample_work, msecs_to_jiffies(SAMPLE_DELAY)))
 	printk(KERN_ERR "sysprof: Unable to queue sampling task.");
@@ -81,9 +88,10 @@ static const struct file_operations dev_fops =
  * memory mapped character device file.  Returns zero on success or a negative
  * error code.
  */
-int create_shmem_buffer(void)
+int create_shmem_buffer(struct shmem_operations * ops)
 {
     int err = 0;
+    shmem_ops = ops;
 
     // allocate buffer space for shared memory
     shmem_buffer = vmalloc(SHMEM_SIZE);
@@ -158,7 +166,7 @@ void destroy_shmem_buffer(void)
  * @data a pointer to the region of memory where the data resides
  * @size the size of the region of memory where the data resides
  */
-void insert_data(void * data, ssize_t size)
+void insert_data(void * data, size_t size)
 {
     // is there space for this?
     // if not, we reset to the beginning of the buffer

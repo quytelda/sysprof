@@ -65,16 +65,7 @@ int __init sysprof_init(void)
 {
     int err = 0;
 
-    printk(KERN_INFO "sysprof: Loading sysprof module...\n");
-
-    /* set up shareed memory buffer */
-    err = create_shmem_buffer();
-    if(err < 0)
-    {
-	printk(KERN_ERR "sysprof: Unable to create shared memory buffer!");
-	return -ENOMEM;
-    }
-    
+    printk(KERN_INFO "sysprof: Loading sysprof module...\n");    
 
     /* setup proc filesystem entry */
     proc_entry = proc_create(PROC_ENTRY_FILENAME, 0644, NULL, &proc_fops);
@@ -87,6 +78,19 @@ int __init sysprof_init(void)
 
     /* set up network monitoring */
     init_netfilter();
+
+    /* set up shareed memory buffer */
+    struct shmem_operations shmem_ops =
+    {
+	.report = netfilter_report,
+    };
+    err = create_shmem_buffer(&shmem_ops);
+    if(err < 0)
+    {
+	printk(KERN_ERR "sysprof: Unable to create shared memory buffer!");
+	return -ENOMEM;
+    }
+
 
     printk(KERN_INFO "sysprof: Loaded module.");
     return 0;
