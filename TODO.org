@@ -1,5 +1,15 @@
-- [ ] Figure out how to integrate the bash scripts with the rest of the project
-- [ ] Get the bash scripts to send to the shared buffer
-- [ ] Run all the statistic gathering code on someone's laptop (not an EWS Putty) to get better data
+- [ ] Implement signaling
+- [ ] Implement long term storage
+  - [ ] SQLite
+- [ ] Testing
+  - [ ] Statistical Analysis Code
+  - [ ] Roger's bash scripts
+  - [ ] Kernel module
+- [ ] Integrating project components
+  - [ ] /proc filesystem
+  - [ ] bash scripts
+    + maybe send these to the shared buffer?
+  - [ ] stats code
+  - [ ] notifications
 - [X] Modify netfilter code to poll on a time interval basis, and then run it to gather packet data
 - [ ] Derive better heuristics for inotify
