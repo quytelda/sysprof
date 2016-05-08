@@ -22,5 +22,16 @@
 #define SHMEM_SIZE (PAGE_SIZE * SHMEM_PAGES)
 #define SHMEM_CDEV_NAME "sysprof"
 
+/**
+ * insert_struct() - adds a struct to the shared memory buffer
+ * @s_ptr: a pointer to the data structure
+ * @type: the data type of the struct (i.e. struct task_struct)
+ *
+ * Calls insert_data() with the appropriate arguments.
+ */
+#define insert_struct(s_ptr, type): insert_data((void *) s_ptr, sizeof(type))
+
 int create_shmem_buffer(void);
 void destroy_shmem_buffer(void);
+
+void insert_data(void * data, ssize_t bytes);

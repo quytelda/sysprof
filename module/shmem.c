@@ -27,6 +27,7 @@
 #include "shmem.h"
 
 static void * shmem_buffer = NULL;
+static void * shmem_cursor = NULL;
 
 static int chrdev_mmap(struct file * file, struct vm_area_struct * vma)
 {
@@ -92,6 +93,9 @@ int create_shmem_buffer(void)
     err = cdev_add(dev, dev_num, 1);
     if(err < 0) return err;
 
+    // point the cursor at the start of the memory region
+    shmem_cursor = shmem_buffer;
+
     return 0;
 }
 
@@ -115,4 +119,24 @@ void destroy_shmem_buffer(void)
     }
 
     vfree(shmem_buffer);
+    shmem_buffer = NULL;
+    shmem_cursor = NULL;
+}
+
+/**
+ * insert_data() - insert data into the shared buffer
+ * @data a pointer to the region of memory where the data resides
+ * @size the size of the region of memory where the data resides
+ */
+void insert_data(void * data, ssize_t size)
+{
+    // is there space for this?
+    // if not, we reset to the beginning of the buffer
+    if((shmem_buffer + SHMEM_SIZE) - shmem_cursor <= size)
+	shmem_cursor = shmem_buffer;
+
+    memcpy(shmem_cursor, data, size);
+
+    // advance cursor
+    shmem_cursor += size;
 }
