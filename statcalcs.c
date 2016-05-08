@@ -1,54 +1,60 @@
-#include <math.h> //We need this to perform math
-
+#include <math.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <time.h>
 
 bool usegamma = false; //If we are using the gamma distribution then set this flag to true
 bool usenormal = false; //If we are using the normal distribution then set this flag to true
 bool useexponential = false; //If we are using the exponential distribution then set this flag to true
 
 
-void gammabootstrap(float *surrogatenum[], int *surrogatefreq[], float *gammaparam[2], int numboot) //Function for calculating the population gamma distribution parameters alpha and theta given the sample distribution
+//Calculates the population gamma distribution parameters alpha and theta given the sample distribution
+void gammabootstrap(float *surrogatenum[], int *surrogatefreq[], float *gammaparam[2], int numboot, int surrogatesize)
 {
-	int samplesize = surrogatenum.length
+	int samplesize = surrogatesize;
 	float mainmean = 0;   // sample mean of surrogate population distribution
 	float mainvar = 0;    // sample variance of surrogate population distribution
-	
-	for(int i = 0; i < surrogatenum.length; i++) //calculate main mean of surrogate distribution
-	{
-		mainmean = mainmean + surrogatenum[i]; //add up all the samples
-	}
-	
-	mainmean = mainmean / samplesize; //divide by the samplesize to get the mean of the sample set
-	
-	for(int i = 0; i < surrogatenum.length; i++) //calculate the variance of the surrogate distribution
-	{
-		mainvar = mainvar + ((surrogatenum[i] - mainmean)^2); //add up all the squared differences between the samples and the sample mean
-	}
-	
-	mainvar = mainvar / samplesize; //divide by the sample size to get the variance of the sample set
-	
-	float mainalpha = ((mainmean)^2)/mainvar; //Find the alpha and theta parameters of the sample set. Mean of gamma distributon is equal to alpha * theta and variance of gamma distribution is equal to alpha * (theta)^2
-	float maintheta = mainvar / mainmean;
-	
 	int bootrep = numboot; //This is the number of boot sample distributions that we will create. Each bootstrap sample distribution is built by sampling from the surrogate population with replacement
 	
-	float bootsamples[bootrep][samplesize]; //Create 2D array. This will hold an array of bootstrap distributions which are arrays of equal size of samples grabbed randomly from the surrogate distribution.
-	float bootsampmean[bootrep]; //Create array that will hold the alpha paramater for each bootstrap gamma distribution
-	float bootsampvar[bootrep]; //Create array that will hold the theta parameter for each bootstrap gamma distribution
+	//calculate mean of surrogate distribution
+	for(int i = 0; i < surrogatesize; i++) 
+		mainmean = mainmean + *surrogatenum[i];	
+	mainmean = mainmean / samplesize;
 	
-	for(int i = 0; i < bootrep; i++) //Grab random samples from the surrogate gamma distribution. This sampling is done with replacement.
+	//calculate the variance of the surrogate distribution by adding up all the squared differences between the samples and the sample mean
+	for(int i = 0; i < surrogatesize; i++) 
+		mainvar = mainvar + ((*surrogatenum[i] - mainmean) * (*surrogatenum[i] - mainmean));	
+	mainvar = mainvar / samplesize;
+	
+	//Find alpha and theta parameters of sample set. Mean of gamma distributon = alpha * theta and variance of gamma distribution = alpha * (theta)^2	
+	float mainalpha = (mainmean * mainmean)/mainvar; 
+	float maintheta = mainvar / mainmean;
+	
+	//2D array that will hold an array of bootstrap distributions which are arrays of equal size of samples grabbed randomly from the surrogate distribution.
+	float bootsamples[bootrep][samplesize]; 
+
+	//Arrays that hold alpha and theta parameters for each bootstrap distribution
+	float bootsampmean[bootrep];
+	float bootsampvar[bootrep];
+	
+	//Seed the random number generator
+	time_t t;
+	srand((unsigned) time(&t));
+
+	//Grab random samples from the surrogate gamma distribution. This sampling is done with replacement.
+	for(int i = 0; i < bootrep; i++) 
 	{
-		for(int j = 0; j < surrogatenum.length; j++)
+		for(int j = 0; j < surrogatesize; j++)
 		{
-			int rondomsample = rand() % samplesize; //Randomly choose a sample
-			bootrep[i][j] = randomsample; //Place sample into boostrap sample distribution. *Note: all boostrap sample sizes are equal to the surrogate sample size.
+			int randomsample = rand() % samplesize; //Randomly choose a sample
+			bootsamples[i][j] = randomsample; //Place sample into boostrap sample distribution. *Note: all boostrap sample sizes are equal to the surrogate sample size.
 		}
 	}
 	
 	for(int i = 0; i < bootrep; i++) //Calculate the mean for every bootstrap gamma distribution
 	{
-		float tempmean = 0;
-		
-		for(int j = 0; bootsamples[i].length; j++)
+		float tempmean = 0;		
+		for(int j = 0; /*bootsamples[i].length*/ j < samplesize; j++)
 		{
 			tempmean = tempmean + bootsamples[i][j]; //add up all the samples
 		}
@@ -59,30 +65,28 @@ void gammabootstrap(float *surrogatenum[], int *surrogatefreq[], float *gammapar
 	
 	for(int i = 0; i < bootrep; i++) //calculate the variance for every bootstrap gamma distribution
 	{
-		float tempvar = 0;
-		
-		for(int j = 0; j < bootsamples[i].length; j++)
+		float tempvar = 0;		
+		for(int j = 0; j < samplesize/* bootsamples[i].length*/; j++)
 		{
-			tempvar = tempvar + ((bootsamples[i][j] - bootsampmean[i])^2); //add up all the squared differences of the sample and sample mean
-		}
-		
-		tempvar = tempvar / samplesize; //divide by the sample size to get the variance
-		
+			tempvar = tempvar + ((bootsamples[i][j] - bootsampmean[i]) * (bootsamples[i][j] - bootsampmean[i])); //add up all the squared differences of the sample and sample mean
+		}		
+		tempvar = tempvar / samplesize; //divide by the sample size to get the variance		
 		bootsampvar[i] = tempvar; //put the variances in the array
 	}
 	
 	float bootalpha[bootrep]; //create an array that will hold the alpha parameters for all the bootstrap gamma distributions
 	float boottheta[bootrep]; //create an array that will hold the theta parameters for all the bootstrap gamma distributions
 	
-	for(int i = 0; i < bootrep; i++) //Calculate the alpha and theta parameters knowing the equations mean = alpha * theta and variance = alpha * (theta)^2
+	//Calculate the alpha and theta parameters knowing the equations mean = alpha * theta and variance = alpha * (theta)^2
+	for(int i = 0; i < bootrep; i++) 
 	{
-		bootalpha[i] = ((bootsampmean[i])^2) / (bootsampvar[i]);
+		bootalpha[i] = (bootsampmean[i] * bootsampmean[i]) / (bootsampvar[i]);
 		boottheta[i] = (bootsampvar[i]) / (bootsampmean[i]);
 	}
 	
-	float normalalphamean = 0; //Create a bell shaped normal distribution of all the calculated bootstrap alpha and theta parameters
-	float normalalphavar = 0;
-	
+	//Create a bell shaped normal distribution of all the calculated bootstrap alpha and theta parameters
+	float normalalphamean = 0; 
+	float normalalphavar = 0;	
 	float normalthetamean = 0;
 	float normalthetavar = 0;
 	
@@ -92,13 +96,15 @@ void gammabootstrap(float *surrogatenum[], int *surrogatefreq[], float *gammapar
 		normalthetamean = normalthetamean + boottheta[i];
 	}
 	
-	normalalphamean = normalalphamean / bootrep; //divide by the number of gamma distributions we made (number of alpha and theta parameters there are) to get the mean
+	//divide by the number of gamma distributions we made (number of alpha and theta parameters there are) to get the mean
+	normalalphamean = normalalphamean / bootrep; 
 	normalthetamean = normalthetamean / bootrep;
 	
-	for(int i = 0; i < bootrep; i++) //add up all the squared differences of the alpha and theta parameters minus their respective mean values
+	//add up all the squared differences of the alpha and theta parameters minus their respective mean values
+	for(int i = 0; i < bootrep; i++)
 	{
-		normalalphavar = normalalphavar + ((bootalpha[i] - normalalphamean)^2);
-		normalthetavar = normalthetavar + ((boottheta[i] - normalthetamean)^2);
+		normalalphavar = normalalphavar + ((bootalpha[i] - normalalphamean) * (bootalpha[i] - normalalphamean));
+		normalthetavar = normalthetavar + ((boottheta[i] - normalthetamean) * (boottheta[i] - normalthetamean));
 	}
 	
 	normalalphavar = normalalphavar / bootrep; //divide by the number of gamma distributions we made to get the variance
@@ -109,27 +115,28 @@ void gammabootstrap(float *surrogatenum[], int *surrogatefreq[], float *gammapar
 	float alpha = (2*mainalpha) - normalalphamean; //We know that the difference between the main sample distribution alpha and the actual population gamma distribution alpha is equal to the difference between the most likely alpha calculated by performing bootstrapping and the actual main sample distribution alpha
 	float theta = (2*maintheta) - normalthetamean; //We know that the difference between the main sample distribution theta and the actual population gamma distribution theta is equal to the difference between the most likely theta calculated by performing bootstrapping and the actual main sample distribution theta
 	
-	gammaparam[0] = alpha;
-	gammaparam[1] = theta;
+	*gammaparam[0] = alpha;
+	*gammaparam[1] = theta;
 }
 
-//Please see step by step comments for gamma distribution bootstrapping funtion. This function also performs bootstrapping but on the normal distribution.
-void normalbootstrap(float *surrogatenum[], int *surrogatefreq[], float normalparam[2], int numboot) //Function for calculating the population normal distribution parameters mu and sigma squared given the sample distribution
+//Please see step by step comments for gamma distribution bootstrapping function. This function also performs bootstrapping but on the normal distribution.
+//Function for calculating the population normal distribution parameters mu and sigma squared given the sample distribution
+void normalbootstrap(float *surrogatenum[], int *surrogatefreq[], float *normalparam[2], int numboot, int surrogatesize)
 {
-	int samplesize = surrogatenum.length
+	int samplesize = surrogatesize;
 	float mainmean = 0;   // sample mean of surrogate population distribution
 	float mainvar = 0;    // sample variance of surrogate population distribution
 	
-	for(int i = 0; i < surrogatenum.length; i++) //calculate main mean of surrogate distribution
+	for(int i = 0; i < surrogatesize; i++) //calculate main mean of surrogate distribution
 	{
-		mainmean = mainmean + surrogatenum[i];
+		mainmean = mainmean + *surrogatenum[i];
 	}
 	
 	mainmean = mainmean / samplesize;
 	
-	for(int i = 0; i < surrogatenum.length; i++)
+	for(int i = 0; i < surrogatesize; i++)
 	{
-		mainvar = mainvar + ((surrogatenum[i] - mainmean)^2);
+		mainvar = mainvar + ((*surrogatenum[i] - mainmean) * (*surrogatenum[i] - mainmean));
 	}
 	
 	mainvar = mainvar / samplesize;
@@ -140,12 +147,16 @@ void normalbootstrap(float *surrogatenum[], int *surrogatefreq[], float normalpa
 	float bootsampmean[bootrep];
 	float bootsampvar[bootrep];
 	
+	//Seed the random number generator
+	time_t t;
+	srand((unsigned) time(&t));
+
 	for(int i = 0; i < bootrep; i++)
 	{
-		for(int j = 0; j < surrogatenum.length; j++)
+		for(int j = 0; j < surrogatesize; j++)
 		{
-			int rondomsample = rand() % samplesize;
-			bootrep[i][j] = randomsample;
+			int randomsample = rand() % samplesize;
+			bootsamples[i][j] = randomsample;
 		}
 	}
 	
@@ -153,7 +164,7 @@ void normalbootstrap(float *surrogatenum[], int *surrogatefreq[], float normalpa
 	{
 		float tempmean = 0;
 		
-		for(int j = 0; bootsamples[i].length; j++)
+		for(int j = 0; j < samplesize /*bootsamples[i].length*/; j++)
 		{
 			tempmean = tempmean + bootsamples[i][j];
 		}
@@ -166,9 +177,9 @@ void normalbootstrap(float *surrogatenum[], int *surrogatefreq[], float normalpa
 	{
 		float tempvar = 0;
 		
-		for(int j = 0; j < bootsamples[i].length; j++)
+		for(int j = 0; j < samplesize /*bootsamples[i].length*/; j++)
 		{
-			tempvar = tempvar + ((bootsamples[i][j] - bootsampmean[i])^2);
+			tempvar = tempvar + ((bootsamples[i][j] - bootsampmean[i]) * (bootsamples[i][j] - bootsampmean[i]));
 		}
 		
 		tempvar = tempvar / samplesize;
@@ -194,8 +205,8 @@ void normalbootstrap(float *surrogatenum[], int *surrogatefreq[], float normalpa
 	
 	for(int i = 0; i < bootrep; i++)
 	{
-		normalmuvar = normalmuvar + ((bootsampmean[i] - normalmumean)^2);
-		normalsigmavar = normalsigmavar + ((bootsampvar[i] - normalsigmamean)^2);
+		normalmuvar = normalmuvar + ((bootsampmean[i] - normalmumean) * (bootsampmean[i] - normalmumean));
+		normalsigmavar = normalsigmavar + ((bootsampvar[i] - normalsigmamean) * (bootsampvar[i] - normalsigmamean));
 	}
 	
 	normalmuvar = normalmuvar / bootrep;
@@ -204,27 +215,28 @@ void normalbootstrap(float *surrogatenum[], int *surrogatefreq[], float normalpa
 	float mu = (2*mainmean) - normalmumean;
 	float sigma = (2*mainvar) - normalsigmamean;
 	
-	normalparam[0] = mu;
-	normalparam[1] = sigma;	
+	*normalparam[0] = mu;
+	*normalparam[1] = sigma;	
 }
 
 //Please see step by step comments for gamma distribution bootstrapping funtion. This function also performs bootstrapping but on the normal distribution.
-void exponentialbootstrap(float *surrogatenum[], int *surrogatefreq[], float *exponentialtheta, int numboot) //Function for calculating the population exponential distribution parameter theta given the sample distribution
+//Function for calculating the population exponential distribution parameter theta given the sample distribution
+void exponentialbootstrap(float *surrogatenum[], int *surrogatefreq[], float *exponentialtheta, int numboot, int surrogatesize) 
 {
-	int samplesize = surrogatenum.length
+	int samplesize = surrogatesize;
 	float mainmean = 0;   // sample mean of surrogate population distribution
 	float mainvar = 0;    // sample variance of surrogate population distribution
 	
-	for(int i = 0; i < surrogatenum.length; i++) //calculate main mean of surrogate distribution
+	for(int i = 0; i < surrogatesize; i++) //calculate main mean of surrogate distribution
 	{
-		mainmean = mainmean + surrogatenum[i];
+		mainmean = mainmean + *surrogatenum[i];
 	}
 	
 	mainmean = mainmean / samplesize;
 	
-	for(int i = 0; i < surrogatenum.length; i++)
+	for(int i = 0; i < surrogatesize; i++)
 	{
-		mainvar = mainvar + ((surrogatenum[i] - mainmean)^2);
+		mainvar = mainvar + ((*surrogatenum[i] - mainmean) * (*surrogatenum[i] - mainmean));
 	}
 	
 	mainvar = mainvar / samplesize;
@@ -237,12 +249,16 @@ void exponentialbootstrap(float *surrogatenum[], int *surrogatefreq[], float *ex
 	float bootsampmean[bootrep];
 	float bootsampvar[bootrep];
 	
+	//Seed the random number generator
+	time_t t;
+	srand((unsigned) time(&t));
+
 	for(int i = 0; i < bootrep; i++)
 	{
-		for(int j = 0; j < surrogatenum.length; j++)
+		for(int j = 0; j < surrogatesize; j++)
 		{
-			int rondomsample = rand() % samplesize;
-			bootrep[i][j] = randomsample;
+			int randomsample = rand() % samplesize;
+			bootsamples[i][j] = randomsample;
 		}
 	}
 	
@@ -250,7 +266,7 @@ void exponentialbootstrap(float *surrogatenum[], int *surrogatefreq[], float *ex
 	{
 		float tempmean = 0;
 		
-		for(int j = 0; bootsamples[i].length; j++)
+		for(int j = 0; j < samplesize /* bootsamples[i].length*/; j++)
 		{
 			tempmean = tempmean + bootsamples[i][j];
 		}
@@ -263,9 +279,9 @@ void exponentialbootstrap(float *surrogatenum[], int *surrogatefreq[], float *ex
 	{
 		float tempvar = 0;
 		
-		for(int j = 0; j < bootsamples[i].length; j++)
+		for(int j = 0; j < samplesize /*bootsamples[i].length*/; j++)
 		{
-			tempvar = tempvar + ((bootsamples[i][j] - bootsampmean[i])^2);
+			tempvar = tempvar + ((bootsamples[i][j] - bootsampmean[i]) * (bootsamples[i][j] - bootsampmean[i]));
 		}
 		
 		tempvar = tempvar / samplesize;
@@ -292,18 +308,28 @@ void exponentialbootstrap(float *surrogatenum[], int *surrogatefreq[], float *ex
 	
 	for(int i = 0; i < bootrep; i++)
 	{
-		normalthetavar = normalthetavar + ((boottheta[i] - normalthetamean)^2);
+		normalthetavar = normalthetavar + ((boottheta[i] - normalthetamean) * (boottheta[i] - normalthetamean));
 	}
 	
 	normalthetavar = normalthetavar / bootrep;
 	
 	float theta = (2*maintheta) - normalthetamean;
 	
-	exponential = theta;
+	*exponentialtheta = theta;
 }
 
+int factorial(int n) //Function for calculating factorial of integer n
+{
+		if (n < 0)
+			return -1;
+    if (n == 1 || n == 0)
+        return 1;
+    else
+        return n * factorial(n - 1);
+}
 
-float gammacutoff(float alpha, float theta, float percent) //This function determines the cutoff value for the gamma distribution for what is considered normal and what is considered a discrepancy.
+//This function determines the cutoff value for the gamma distribution for what is considered normal and what is considered a discrepancy.
+float gammacutoff(float alpha, float theta, float percent) 
 {
 	// The alpha and beta parameters are the gamma distribution parameters and the percent parameter is the percent of the gamma distribution that we will consider to be the cutoff value.
 	percent = percent / 100.0; //percent is passed is as a number between 0.0 and 100.0 so we divide it by 100 to turn it to a number between 0.0 and 1.0
@@ -317,38 +343,31 @@ float gammacutoff(float alpha, float theta, float percent) //This function deter
 	
 	while(total < percent) //Keep accumulating for larger values of x and once total is equal to or slightly larger than percent then we round our cutoff value
 	{
-		total = total + ((1/(faca * b)) * ((x / b)^(a - 1)) * exp((-1*x) / b)); //Keep adding to variable total *Note the value added here should be VERY small.
+		total = total + ((1/(faca * b)) * (powf((x / b), (a - 1))) * exp((-1*x) / b)); //Keep adding to variable total *Note the value added here should be VERY small.
 		x = x + 0.001; //Keep incrementing x. We might need to increase/decrease the increment value.
 	}
 	
-	return x //Return our sample number cutoff value
+	return x; //Return our sample number cutoff value
 }
 
-int factorial(int n) //Function for calculating factorial of integer n
-{
-    if (n == 1)
-        return 1;
-    else
-        return n * factorial(n - 1);
-}
-
-void main()
+int main()
 {
 	//                            DO MySQL/SQLite things here
 	
-	int frequency[1440];
-	float sample[1440];
-	float cutoffpercent = 95.0 //Set the cutoff percentage
-	float sample cutoff
+	int *frequency=malloc(sizeof(int) * 1440);
+	float *sample = malloc(sizeof(float) * 1440);
+	float cutoffpercent = 95.0; //Set the cutoff percentage
+	float samplecutoff;
 	
 	if(usegamma)
 	{
-		float gammaparameters[2];
+		float *gammaparameters = malloc(sizeof(float) * 2);
 		gammaparameters[0] = 0.0;
 		gammaparameters[1] = 0.0;
 		
-		gammabootstrap(&sample, &frequency, &gammaparameters, 1000);
-		samplecutoff = gammacutoff(gammaparameters[0], gammaparameters[1], cutoffpercent);
+		int surrogatesize = sizeof(sample)/sizeof(sample[0]);
+		gammabootstrap(&sample, &frequency, &gammaparameters, 1000, surrogatesize);
+		float samplecutoff = gammacutoff(gammaparameters[0], gammaparameters[1], cutoffpercent);
 		
 		
 		// Place the new sample data and put it into the two arrays frequency[] and sample[]
