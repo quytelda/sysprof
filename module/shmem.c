@@ -32,7 +32,7 @@
 static void * shmem_buffer = NULL;
 static void * shmem_cursor = NULL;
 
-static struct shmem_operations * shmem_ops;
+static struct shmem_operations shmem_ops;
 
 static struct workqueue_struct * workqueue;
 static struct delayed_work * sample_work;
@@ -63,10 +63,14 @@ static int chrdev_mmap(struct file * file, struct vm_area_struct * vma)
 
 static void sample_data(struct work_struct * work)
 {
-    printk(KERN_ALERT "Sampling data...\n");
+    if(!shmem_ops.report)
+    {
+	printk(KERN_ERR "sysprof: data reporting callback undefined.");
+	return;
+    }
 
     void * data = NULL;
-    ssize_t data_size = shmem_ops->report(&data);
+    ssize_t data_size = shmem_ops.report(&data);
 
     insert_data(data, (size_t) data_size);
 
@@ -89,7 +93,7 @@ static const struct file_operations dev_fops =
  * memory mapped character device file.  Returns zero on success or a negative
  * error code.
  */
-int create_shmem_buffer(struct shmem_operations * ops)
+int create_shmem_buffer(struct shmem_operations ops)
 {
     int err = 0;
     shmem_ops = ops;

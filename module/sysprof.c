@@ -84,7 +84,7 @@ int __init sysprof_init(void)
     {
 	.report = netfilter_report,
     };
-    err = create_shmem_buffer(&shmem_ops);
+    err = create_shmem_buffer(shmem_ops);
     if(err < 0)
     {
 	printk(KERN_ERR "sysprof: Unable to create shared memory buffer!");
