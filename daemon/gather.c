@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/types.h>
-#include "include/stats.h"
+#include "../include/stats.h"
 
 int main(){
 
