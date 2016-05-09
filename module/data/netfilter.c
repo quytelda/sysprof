@@ -33,6 +33,12 @@ static unsigned int udp_in_count = 0, tcp_in_count = 0, icmp_in_count = 0;
 static unsigned int udp_out_count = 0, tcp_out_count = 0, icmp_out_count = 0;
 static unsigned int packets_in_count = 0, packets_out_count = 0;
 
+/**
+ * netfilter_report() - reports and resets the data sample
+ * @data the address of the pointer to a data structure
+ * Stores the cumlative data in a struct nf_data before resetting the counters;
+ * Returns the size of the data structure (struct nf_data).
+ */
 ssize_t netfilter_report(void ** data)
 {
     struct nf_data * nfdata = (struct nf_data *)
@@ -48,11 +54,11 @@ ssize_t netfilter_report(void ** data)
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
-static unsigned int hook_func_in(void * priv,
+static unsigned int nfhook_in(void * priv,
 				 struct sk_buff * skb,
 				 const struct nf_hook_state * state)
 #else
-static unsigned int hook_func_in(const struct nf_hook_ops * ops,
+static unsigned int nfhook_in(const struct nf_hook_ops * ops,
 				 struct sk_buff * skb,
 				 const struct net_device * in,
 				 const struct net_device * out,
@@ -68,10 +74,6 @@ static unsigned int hook_func_in(const struct nf_hook_ops * ops,
     // get the protocol, length, source IP, and destination IP of a packet caught in the hook:
     struct iphdr * ip_header = (struct iphdr *) skb_network_header(skb);
 
-    /* TODO: the iphdr also has parameters check, frag_off, id, tot_len, and
-     * ttl. What do they do? How can we use them?  Anything we can learn
-     * from ttl (time to live) value? */
-    unsigned int len = (unsigned int) ip_header->tot_len;
     unsigned int src_ip  = (unsigned int) ip_header->saddr;
     unsigned int dest_ip = (unsigned int) ip_header->daddr;
     unsigned int src_port = 0, dest_port = 0;
@@ -109,27 +111,16 @@ static unsigned int hook_func_in(const struct nf_hook_ops * ops,
 	dest_ip = (unsigned int) ip_header->daddr;
     }
 
-    /* TODO: switch(dest_ip)
-    {
-	//Keep track of where the packets are going to. If we send an anomalous amount of packets to a bunch of very distant
-	//addresses, something might be wrong.
-	//Sending to a lot of IPs might be more suspicious than sending to very few--A chat session with another machine
-	//may cause a lot of traffic to a specific IP address, but there is little reason to send a single packet to 10,000
-	//different IP addresses
-    }*/
-
-    // TODO: send counts to shared buffer?
-
     // let the packet through. We're just observing
     return NF_ACCEPT;
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
-static unsigned int hook_func_out(void * priv,
+static unsigned int nfhook_out(void * priv,
 				 struct sk_buff * skb,
 				 const struct nf_hook_state * state)
 #else
-static unsigned int hook_func_out(const struct nf_hook_ops * ops,
+static unsigned int nfhook_out(const struct nf_hook_ops * ops,
 				 struct sk_buff * skb,
 				 const struct net_device * in,
 				 const struct net_device * out,
@@ -141,10 +132,6 @@ static unsigned int hook_func_out(const struct nf_hook_ops * ops,
     // get the protocol, length, source IP, and destination IP of a packet caught in the hook:
     struct iphdr * ip_header = (struct iphdr *) skb_network_header(skb);
 
-    /* TODO: the iphdr also has parameters check, frag_off, id, tot_len, and
-     * ttl. What do they do? How can we use them?  Anything we can learn
-     * from ttl (time to live) value? */
-    unsigned int len = (unsigned int) ip_header->tot_len;
     unsigned int src_ip  = (unsigned int) ip_header->saddr;
     unsigned int dest_ip = (unsigned int) ip_header->daddr;
     unsigned int src_port = 0, dest_port = 0;
@@ -184,7 +171,7 @@ static unsigned int hook_func_out(const struct nf_hook_ops * ops,
 
 static struct nf_hook_ops nfho_in =
 {
-    .hook     = hook_func_in,
+    .hook     = nfhook_in,
     .hooknum  = NF_INET_LOCAL_IN,
     .pf	      = PF_INET,
     .priority = NF_IP_PRI_FIRST,
@@ -192,15 +179,15 @@ static struct nf_hook_ops nfho_in =
 
 static struct nf_hook_ops nfho_out =
 {
-    .hook	= hook_func_out,
+    .hook	= nfhook_out,
     .hooknum	= NF_INET_LOCAL_OUT,
     .pf		= PF_INET,
     .priority	= NF_IP_PRI_FIRST, // different hook, can also be first
 };
 
-//Via example at http://pleviaka.pp.fi/netfilter_module.c
-
-/*
+/**
+ * init_netfilter() - initialize netfilter to gather data
+ * Sets up the necessary hooks to listen for incoming and outgoing packet data.
  */
 void init_netfilter(void)
 {
