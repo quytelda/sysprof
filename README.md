@@ -13,3 +13,6 @@ how many files have been opened (all since the last 1 minute interval)
 
 Line 2: the access alerts, the attribute modification alerts, the modification alerts, and the read alerts 
 (all since the last 1 minute interval). Alerts indicate potentially suspicious activity
+
+##Master_IO.bash
+Master_IO.bash is a bash script that gathers disk I/O (in blocks read from and written to per device), CPU usage (percentage by user, nice, system, iowait, steal, and idle), and memory (megabytes total, used, free, shared, buffers, cached). Data is gathered every minute and sent to named pipes "memory_pipe", "disk_pipe", and "CPU_pipe"
