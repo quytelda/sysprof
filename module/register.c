@@ -22,10 +22,6 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/sched.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <unistd.h>
 
 static struct task_struct * process = NULL;
 
@@ -43,7 +39,7 @@ void signal_processes(void)
     if(!process) return;
     
     //Create a signal and send it to the process
-    signal(SIGCONT, SIG_DFL);
+    //signal(SIGCONT, SIG_DFL);
     
     
 }
