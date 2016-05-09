@@ -3,3 +3,13 @@ Linux Statistical System Profiler
 
 ## Kernel Module
 The kernel module records real-time data about incoming/outgoing network packets using Netfilter.  The records of the real time data are periodically sampled at regular interval and made available in a shared memory buffer accessible via a character device (/dev/sysprof).
+
+##Inotify
+Inotify is an executable that takes monitors filesystem activity. Every minute seconds, it will report the following statistics in 
+2 lines:
+
+Line 1: how many files have been accessed, how many files have had their attributes changed, how many files have been modified, and
+how many files have been opened (all since the last 1 minute interval)
+
+Line 2: the access alerts, the attribute modification alerts, the modification alerts, and the read alerts 
+(all since the last 1 minute interval). Alerts indicate potentially suspicious activity
