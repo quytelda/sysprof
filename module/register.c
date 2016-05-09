@@ -21,29 +21,42 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/sched.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <unistd.h>
+#include <linux/schedule.h>
+#include <linux/pid.h>
 
+
+/* TODO: Should be able to register multiple processes.
+ * This should actually be a linked list of task_structs. We're taking this
+ * shortcut now so the daemon team can run their tests in the meantime.
+ */
 static struct task_struct * process = NULL;
 
+/**
+ * register_pid() - Register a process so it will receive signals.
+ * @pid The pid of the process
+ */
 void register_pid(pid_t pid)
 {
+    process = pid_task(find_get_pid(pid), PIDTYPE_PID);
 }
 
+/**
+ * unregister_pid() - Unregister a process so it will no longer receive signals.
+ * @pid The pid of the process.
+ * The opposite of register_pid()
+ */
 void unregister_pid(pid_t pid)
 {
     process = NULL;
 }
 
+/**
+ * signal_process() - send a signal to a user process
+ * Sends SIGCONT to the process whose task_struct we have, if it exists.
+ */
 void signal_processes(void)
 {
     if(!process) return;
     
     //Create a signal and send it to the process
-    signal(SIGCONT, SIG_DFL);
-    
-    
 }
