@@ -20,6 +20,7 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/version.h>
 #include <linux/ip.h>
 #include <linux/udp.h>
 #include <linux/tcp.h>
@@ -46,9 +47,17 @@ ssize_t netfilter_report(void ** data)
     return sizeof(struct nf_data);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
 static unsigned int hook_func_in(void * priv,
 				 struct sk_buff * skb,
 				 const struct nf_hook_state * state)
+#else
+static unsigned int hook_func_in(const struct nf_hook_ops * ops,
+				 struct sk_buff * skb,
+				 const struct net_device * in,
+				 const struct net_device * out,
+				 int (* okfn) (struct sk_buff *))
+#endif
 {
     packets_in_count++; // keep track of incoming packet count
 
@@ -115,9 +124,17 @@ static unsigned int hook_func_in(void * priv,
     return NF_ACCEPT;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
 static unsigned int hook_func_out(void * priv,
 				 struct sk_buff * skb,
 				 const struct nf_hook_state * state)
+#else
+static unsigned int hook_func_out(const struct nf_hook_ops * ops,
+				 struct sk_buff * skb,
+				 const struct net_device * in,
+				 const struct net_device * out,
+				 int (* okfn) (struct sk_buff *))
+#endif
 {
     packets_out_count++; // keep track of incoming packet count
 
