@@ -7,7 +7,7 @@
   - [ ] Kernel module
 - [ ] Integrating project components
   - [ ] /proc filesystem
-  - [ ] bash scripts
+  - [X] bash scripts
     + maybe send these to the shared buffer?
   - [ ] stats code
   - [ ] notifications
