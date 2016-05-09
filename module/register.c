@@ -21,9 +21,8 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/schedule.h>
 #include <linux/pid.h>
-
+#include <linux/sched.h>
 
 /* TODO: Should be able to register multiple processes.
  * This should actually be a linked list of task_structs. We're taking this
