@@ -9,7 +9,7 @@
 
 //using namespace std;
 
-int files_accessed = 0, permissions_changed = 0, files_modified = 0, files_opened = 0;
+int files_accessed = 0, attributes_changed = 0, files_modified = 0, files_opened = 0;
 //General activity statistics
 
 int ACCESS_ALERT = 0, PERM_CHANGE_ALERT = 0, MODIFY_ALERT = 0, READ_ALERT = 0;
@@ -53,8 +53,8 @@ analyzeInotifyEvent(struct inotify_event *i)
 	if (i->mask & IN_ACCESS)	       //File was accessed
 		files_accessed++;
 	
-	if (i->mask & IN_ATTRIB)		//Permissions were changed
-		permissions_changed++;
+	if (i->mask & IN_ATTRIB)		//Attributes were changed
+		attributes_changed++;
 	
 	if (i->mask & IN_MODIFY)		//File was modified
 		files_modified++;
@@ -70,12 +70,12 @@ analyzeInotifyEvent_shadow(struct inotify_event *i)
 	/*if (i->mask & IN_ACCESS){					//Nobody but root should access this
 		printf("etc/shadow was accessed\n");
 		ACCESS_ALERT++;
-		//Any way to tell the permissions or identify of the user who committed the action????????
+		//Any way to tell the attributes or identify of the user who committed the action????????
 			//I.E. if a daemon user accessed shadow
 	}*/
 	
 	if (i->mask & IN_ATTRIB){
-		printf("etc/shadow had its permissions changed!\n");
+		printf("etc/shadow had its attributes changed!\n");
 		PERM_CHANGE_ALERT++;
 	}
 	
@@ -89,7 +89,7 @@ static void		//Specific event handler for editing of the etc/ssh/ssh_config file
 analyzeInotifyEvent_ssh_config(struct inotify_event *i)
 {
 	if (i->mask & IN_ATTRIB){
-		printf("etc/ssh/ssh_config had its permissions changed!\n");
+		printf("etc/ssh/ssh_config had it attributes changed!\n");
 		PERM_CHANGE_ALERT++;
 	}
 	
@@ -103,7 +103,7 @@ static void
 analyzeInotifyEvent_sudoers(struct inotify_event *i)
 {
 	if (i->mask & IN_ATTRIB){		
-		printf("etc/sudoers had its permissions changed!\n");
+		printf("etc/sudoers had its attributes changed!\n");
 		PERM_CHANGE_ALERT++;
 	}
 	
@@ -119,12 +119,12 @@ analyzeInotifyEvent_passwd(struct inotify_event *i)
 	/*if (i->mask & IN_ACCESS){
 		printf("etc/passwd was accessed\n");
 		ACCESS_ALERT++;
-		//Any way to tell the permissions or identify of the user who committed the action????????
+		//Any way to tell the attributes or identify of the user who committed the action????????
 			//I.E. if a daemon user accessed shadow
 	}*/
 	
 	if (i->mask & IN_ATTRIB){
-		printf("etc/passwd had its permissions changed!\n");
+		printf("etc/passwd had its attributes changed!\n");
 		PERM_CHANGE_ALERT++;
 	}
 	
@@ -140,7 +140,7 @@ static void
 analyzeInotifyEvent_group(struct inotify_event *i)
 {
 	if (i->mask & IN_ATTRIB){		//EXTREMELY DELICATE. WHY WOULD YOU NEED TO DO THAT?
-		printf("etc/group had its permissions changed!\n");
+		printf("etc/group had its attributes changed!\n");
 		PERM_CHANGE_ALERT++;
 	}
 	
@@ -160,7 +160,7 @@ analyzeInotifyEvent_hosts(struct inotify_event *i)
 	}*/
 
 	if (i->mask & IN_ATTRIB){
-		printf("etc/host had its permissions changed!\n");
+		printf("etc/host had its attributes changed!\n");
 		PERM_CHANGE_ALERT++;
 	}
 	
@@ -174,7 +174,7 @@ static void
 analyzeInotifyEvent_host_allow(struct inotify_event *i)
 {
 	if (i->mask & IN_ATTRIB){		//EXTREMELY DELICATE. WHY WOULD YOU NEED TO DO THAT?
-		printf("etc/host.allow had its permissions changed!\n");
+		printf("etc/host.allow had its attributes changed!\n");
 		PERM_CHANGE_ALERT++;
 	}
 	
@@ -188,7 +188,7 @@ static void
 analyzeInotifyEvent_host_deny(struct inotify_event *i)
 {
 	if (i->mask & IN_ATTRIB){		//EXTREMELY DELICATE. WHY WOULD YOU NEED TO DO THAT?
-		printf("etc/host_deny had its permissions changed!\n");
+		printf("etc/host_deny had its attributes changed!\n");
 		PERM_CHANGE_ALERT++;
 	}
 	
@@ -202,7 +202,7 @@ static void
 analyzeInotifyEvent_securetty(struct inotify_event *i)
 {
 	if (i->mask & IN_ATTRIB){		//EXTREMELY DELICATE. WHY WOULD YOU NEED TO DO THAT?
-		printf("etc/securetty had its permissions changed!\n");
+		printf("etc/securetty had its attributes changed!\n");
 		PERM_CHANGE_ALERT++;
 	}
 	
@@ -216,7 +216,7 @@ static void
 analyzeInotifyEvent_sources_list(struct inotify_event *i)
 {
 	if (i->mask & IN_ATTRIB){		
-		printf("etc/sources_list had its permissions changed!\n");
+		printf("etc/sources_list had its attributes changed!\n");
 		PERM_CHANGE_ALERT++;
 	}
 	
@@ -230,7 +230,7 @@ static void
 analyzeInotifyEvent_crontab(struct inotify_event *i)
 {
 	if (i->mask & IN_ATTRIB){		
-		printf("etc/crontab had its permissions changed!\n");
+		printf("etc/crontab had its attributes changed!\n");
 		PERM_CHANGE_ALERT++;
 	}
 	
@@ -244,7 +244,7 @@ static void
 analyzeInotifyEvent_bashrc(struct inotify_event *i)
 {
 	if (i->mask & IN_ATTRIB){		
-		printf(".bashrc had its permissions changed!\n");
+		printf(".bashrc had its attributes changed!\n");
 		PERM_CHANGE_ALERT++;
 	}
 	
@@ -258,7 +258,7 @@ static void
 analyzeInotifyEvent_bash_aliases(struct inotify_event *i)
 {
 	if (i->mask & IN_ATTRIB){		
-		printf(".bash_aliases had its permissions changed!\n");
+		printf(".bash_aliases had its attributes changed!\n");
 		PERM_CHANGE_ALERT++;
 	}
 	
@@ -277,7 +277,7 @@ analyzeInotifyEvent_id_rsa(struct inotify_event *i)
 	}
 	
 	if (i->mask & IN_ATTRIB){		
-		printf("ssh private keys had their permissions changed!\n");
+		printf("ssh private keys had their attributes changed!\n");
 		PERM_CHANGE_ALERT++;
 	}
 	
@@ -421,15 +421,15 @@ main(int watch_list_size, char *files_and_directories[])		//Sets up the watchlis
 
         ftime(&current);
 
-        if(current.time == timestamp.time + 60){
+        if(current.time >= timestamp.time + 60){
 
                 timestamp.time = current.time;
 
-                printf("files accessed: %i, attributes changed: %i, files modified %i, files opened %i\n", files_accessed, permissions_changed, files_modified, files_opened);
+                printf("files accessed: %i, attributes changed: %i, files modified %i, files opened %i\n", files_accessed, attributes_changed, files_modified, files_opened);
                 printf("access alerts: %i, attribute alerts: %i, modify alerts %i, read alerts %i\n", ACCESS_ALERT, PERM_CHANGE_ALERT, MODIFY_ALERT, READ_ALERT);
 
                 files_accessed = 0;
-                permissions_changed = 0;
+                attributes_changed = 0;
                 files_modified = 0;
                 files_opened = 0;
 
