@@ -1,4 +1,4 @@
-# sysprof
+# sysprof ![Linux Build Status] (https://travis-ci.org/quytelda/sysprof.svg?branch=master)
 Linux Statistical System Profiler
 
 ## Kernel Module
