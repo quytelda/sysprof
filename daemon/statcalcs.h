@@ -9,9 +9,9 @@ void gammabootstrap(float *surrogatenum[], int *surrogatefreq[], float *gammapar
 
 void normalbootstrap(float *surrogatenum[], int *surrogatefreq[], float *normalparam[2], int numboot, int surrogatesize);
 
-void exponentialbootstrap(float *surrogatenum[], int *surrogatefreq[], float *exponentialtheta, int numboot, int surrogatesize)
+void exponentialbootstrap(float *surrogatenum[], int *surrogatefreq[], float *exponentialtheta, int numboot, int surrogatesize);
 
-int factorial(int n) //Function for calculating factorial of integer n
+int factorial(int n); //Function for calculating factorial of integer n
 
 float gammacutoff(float alpha, float theta, float percent);
 
