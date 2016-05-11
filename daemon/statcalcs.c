@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
+#include "statcalcs.h"
 
 bool usegamma = false; //If we are using the gamma distribution then set this flag to true
 bool usenormal = false; //If we are using the normal distribution then set this flag to true
@@ -349,6 +350,57 @@ float gammacutoff(float alpha, float theta, float percent)
 	
 	return x; //Return our sample number cutoff value
 }
+
+// This function determines the cutoff value for an exponential distribution to determine what is considered normal and what is considered a discrepancy.
+float exponentialcutoff(float theta, float percent)
+{
+	percent = percent / 100.0; //percent is passed in as a number between 0.0 and 100.0 so we divide it by 100 to turn it to a number between 0.0 and 1.0
+	
+	float x = (((-1) * logf(1 - percent)) * theta); //the value of x will be the value at which the exponential distribution reaches the value of percent
+	
+	return x; //return our ample number cutoff value
+}
+
+// This function determines the cutoff value for a normal distribution to determine what is considered normal and what is considered a discrepancy.
+float normalcutoff(float mu, float sigma, float percent)
+{
+	percent = percent / 100.0;
+	
+	//Based on te percent given determine the correct standard normal distribution. *Note if the percent given does not match a correct percentage between 70% and 97.5% then the default percent becomes 98%.
+	if(percent == 0.7) //if 70%
+	{
+		float z = 0.524;
+	}
+	else if(percent == 0.8) //if 80%
+	{
+		float z = 0.842;
+	}
+	else if(percent == 0.9) //if 90%
+	{
+		float z = 1.282;
+	}
+	else if(percent == 0.95) //if 95%
+	{
+		float z = 1.645;
+	}
+	else if(percent == 0.975) //if 97.5%
+	{
+		float z = 1.96;
+	}
+	else if(percent == 0.98) //if 98%
+	{
+		float z = 2.054;
+	}
+	else //else assume 98%
+	{
+		float z = 2.054; //else make the cutoff value at 98%
+	}
+	
+	float x = (z * (sqrtf(sigma))) + mu; //Use the conversion from any normal distribution to the standard normal distribution to find the cutoff sample value
+	
+	return x; //return our ample number cutoff value
+}
+
 
 int main()
 {
