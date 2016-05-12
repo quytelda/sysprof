@@ -426,6 +426,30 @@ int main()
 		
 		
 	}
+	else if(useexponential)
+	{
+		float *exponentialparameters = malloc(sizeof(float) * 1);
+		exponentialparameters[0] = 0.0;
+		
+		int surrogatesize = sizeof(sample)/sizeof(sample[0]);
+		exponentialbootstrap(&sample, &frequency, &exponentialparameters, 1000, surrogatesize);
+		float samplecutoff = exponentialcutoff(exponentialparameters[0], cutoffpercent);
+		
+		
+		
+	}
+	else
+	{
+		float *normalparameters = malloc(sizeof(float) * 2);
+		normalparameters[0] = 0.0;
+		normalparameters[1] = 0.0;
+		
+		int surrogatesize = sizeof(sample)/sizeof(sample[0]);
+		normalbootstrap(&sample, &frequency, &normalparameters, 1000, surrogatesize);
+		float samplecutoff = normalcutoff(normalparameters[0], normalparameters[1], cutoffpercent);
+		
+		
+	}
 }
 
 
