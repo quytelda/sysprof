@@ -25,8 +25,9 @@
 #include <linux/proc_fs.h>
 #include <linux/slab.h>
 
-#include "data/netfilter.h"
 #include "shmem.h"
+#include "register.h"
+#include "data/netfilter.h"
 
 MODULE_AUTHOR("Quytelda Kahja");
 MODULE_AUTHOR("Roger Xiao");
@@ -34,6 +35,7 @@ MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Linux Statistical System Profiler");
 
 #define PROC_ENTRY_FILENAME "sysprof"
+#define PROC_BUFSIZE 8 // large enough for 64bit max_pid
 
 /**
  * This function is called when a program attempts to read the entry in /proc.
@@ -48,15 +50,38 @@ static ssize_t sysprof_read(struct file * file, char __user * buf,
 /**
  * This function is called when a program attempts to write the entry in /proc.
  * Whatever data was written can be copied from @buf in userspace.
+ *
+ * We expect to read in the PID of a running process from userspace.
+ * That PID will be parsed out and registered to receive signals.
  */
 static ssize_t sysprof_write(struct file * file, const char * buf,
 			     size_t length, loff_t * offset)
 {
-    char * buffer = (char *) kmalloc(8, GFP_KERNEL);
+    // receive input buffer from userspace
+    char * buffer = (char *) kmalloc(PROC_BUFSIZE, GFP_KERNEL);
     if(!buffer) return -ENOMEM;
 
     unsigned long copied = copy_from_user(buffer, buf, length);
-    printk(KERN_INFO "received: \"%s\"\n", buffer);
+    if(copied > 0)
+    {
+	printk(KERN_ERR "sysprof: Unable to copy procfs input buffer from userspace.");
+	return -ENOMEM;
+    }
+
+    // try to parse out a pid
+    unsigned int pid;
+    int err = kstrtouint(strim(buffer), 10, &pid);
+    if(err > 0)
+    {
+	printk(KERN_ERR "sysprof: Unable to parse valid PID from input: \"%s\"", buffer);
+	return err;
+    }
+
+    // register the PID
+    printk("Registering PID: %u\n", pid);
+    register_pid((pid_t) pid);
+
+    kfree(buffer);
     return length;
 }
 
@@ -75,7 +100,7 @@ int __init sysprof_init(void)
     printk(KERN_INFO "sysprof: Loading sysprof module...\n");    
 
     /* setup proc filesystem entry */
-    proc_entry = proc_create(PROC_ENTRY_FILENAME, 0644, NULL, &proc_fops);
+    proc_entry = proc_create(PROC_ENTRY_FILENAME, 0666, NULL, &proc_fops);
     if (!proc_entry)
     {
 	remove_proc_entry(PROC_ENTRY_FILENAME, NULL);
