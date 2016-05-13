@@ -21,7 +21,9 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/uaccess.h>
 #include <linux/proc_fs.h>
+#include <linux/slab.h>
 
 #include "data/netfilter.h"
 #include "shmem.h"
@@ -50,7 +52,12 @@ static ssize_t sysprof_read(struct file * file, char __user * buf,
 static ssize_t sysprof_write(struct file * file, const char * buf,
 			     size_t length, loff_t * offset)
 {
-    return 0;
+    char * buffer = (char *) kmalloc(8, GFP_KERNEL);
+    if(!buffer) return -ENOMEM;
+
+    unsigned long copied = copy_from_user(buffer, buf, length);
+    printk(KERN_INFO "received: \"%s\"\n", buffer);
+    return length;
 }
 
 static struct proc_dir_entry * proc_entry;

@@ -57,5 +57,6 @@ void signal_processes(void)
 {
     if(!process) return;
     
-    //Create a signal and send it to the process
+    // signal the process to continue (SIGCONT)
+    send_sig(SIGCONT, process, 1);
 }
