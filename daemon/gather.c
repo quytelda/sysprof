@@ -23,9 +23,10 @@ int main(){
 
 
 	//	Setup mask to recieve signal from kernel module
-	sigfillset(&mask);
-	sigdelset(&mask, SIGCONT);
-	sigdelset(&mask, SIGINT);
+	//sigfillset(&mask);
+	//sigdelset(&mask, SIGCONT);
+	//sigdelset(&mask, SIGINT);
+	(void) sigemptyset(&mask);
 
 
 	//	Store pid for kernel to use
@@ -33,7 +34,9 @@ int main(){
 	char *mode = "w";
 	ifp = fopen("/proc/sysprof", mode);
 	int my_pid = getpid();
+	fprintf(stdout, "R %d\n", my_pid);
 	fprintf(ifp, "R %d", my_pid);
+	fclose(ifp);
 
 
 	//	Open database connection
@@ -88,7 +91,7 @@ int main(){
 
 	//	Loop and wait for signal
 	for(;;){
-		(void) sigsuspend(&mask);
+	    kill(getpid(), SIGSTOP);
 		newsample_counter = newsample_counter + 1;
 		if(newsample_counter >= 1440){
 			//create new thread for: bootstrap()
