@@ -1,11 +1,13 @@
 #ifndef STATCALCS_HEADER_FILE
 #define STATCALCS_HEADER_FILE
 
+#include <stdbool.h>
+
 bool usegamma = false; //If we are using the gamma distribution then set this flag to true
 bool usenormal = false; //If we are using the normal distribution then set this flag to true
 bool useexponential = false; //If we are using the exponential distribution then set this flag to true
 
-void gammabootstrap(float *surrogatenum[], int *surrogatefreq[], float *gammaparam[2], int numboot); //Function for calculating the population gamma distribution parameters alpha and theta given the sample distribution
+void gammabootstrap(float *surrogatenum[], int *surrogatefreq[], float *gammaparam[2], int numboot, int surrogatesize); //Function for calculating the population gamma distribution parameters alpha and theta given the sample distribution
 
 void normalbootstrap(float *surrogatenum[], int *surrogatefreq[], float *normalparam[2], int numboot, int surrogatesize);
 

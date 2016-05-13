@@ -1,12 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <time.h>
 #include "statcalcs.h"
-
-bool usegamma = false; //If we are using the gamma distribution then set this flag to true
-bool usenormal = false; //If we are using the normal distribution then set this flag to true
-bool useexponential = false; //If we are using the exponential distribution then set this flag to true
 
 
 //Calculates the population gamma distribution parameters alpha and theta given the sample distribution
@@ -367,33 +362,35 @@ float normalcutoff(float mu, float sigma, float percent)
 	percent = percent / 100.0;
 	
 	//Based on te percent given determine the correct standard normal distribution. *Note if the percent given does not match a correct percentage between 70% and 97.5% then the default percent becomes 98%.
+
+	float z = 0.0;
 	if(percent == 0.7) //if 70%
 	{
-		float z = 0.524;
+		z = 0.524;
 	}
 	else if(percent == 0.8) //if 80%
 	{
-		float z = 0.842;
+		z = 0.842;
 	}
 	else if(percent == 0.9) //if 90%
 	{
-		float z = 1.282;
+		z = 1.282;
 	}
 	else if(percent == 0.95) //if 95%
 	{
-		float z = 1.645;
+		z = 1.645;
 	}
 	else if(percent == 0.975) //if 97.5%
 	{
-		float z = 1.96;
+		z = 1.96;
 	}
 	else if(percent == 0.98) //if 98%
 	{
-		float z = 2.054;
+		z = 2.054;
 	}
 	else //else assume 98%
 	{
-		float z = 2.054; //else make the cutoff value at 98%
+		z = 2.054; //else make the cutoff value at 98%
 	}
 	
 	float x = (z * (sqrtf(sigma))) + mu; //Use the conversion from any normal distribution to the standard normal distribution to find the cutoff sample value
@@ -404,26 +401,38 @@ float normalcutoff(float mu, float sigma, float percent)
 
 int main()
 {
-	//                            DO MySQL/SQLite things here
-	
+
+	//	Open database connection
+	sqlite3 *db;
+	char *zErrMsg = 0;
+	int rc;
+	rc = sqlite3_open("gather.db", &db);
+	if(rc){
+  	fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+  	exit(EXIT_FAILURE);
+  }
+
+
+	// Get out most recent 1440
+	// Convert to floats
 	int *frequency=malloc(sizeof(int) * 1440);
 	float *sample = malloc(sizeof(float) * 1440);
+	int surrogatesize = sizeof(sample)/sizeof(sample[0]);
 	float cutoffpercent = 95.0; //Set the cutoff percentage
 	float samplecutoff;
-	
+
 	if(usegamma)
 	{
 		float *gammaparameters = malloc(sizeof(float) * 2);
 		gammaparameters[0] = 0.0;
 		gammaparameters[1] = 0.0;
 		
-		int surrogatesize = sizeof(sample)/sizeof(sample[0]);
 		gammabootstrap(&sample, &frequency, &gammaparameters, 1000, surrogatesize);
-		float samplecutoff = gammacutoff(gammaparameters[0], gammaparameters[1], cutoffpercent);
+		samplecutoff = gammacutoff(gammaparameters[0], gammaparameters[1], cutoffpercent);
 		
 		
-		// Place the new sample data and put it into the two arrays frequency[] and sample[]
-		
+		// Weighted average add new cutoffs to golden table
+		free(gammaparameters);
 		
 	}
 	else if(useexponential)
@@ -431,12 +440,11 @@ int main()
 		float *exponentialparameters = malloc(sizeof(float) * 1);
 		exponentialparameters[0] = 0.0;
 		
-		int surrogatesize = sizeof(sample)/sizeof(sample[0]);
-		exponentialbootstrap(&sample, &frequency, &exponentialparameters, 1000, surrogatesize);
-		float samplecutoff = exponentialcutoff(exponentialparameters[0], cutoffpercent);
+		exponentialbootstrap(&sample, &frequency, exponentialparameters, 1000, surrogatesize);
+		samplecutoff = exponentialcutoff(exponentialparameters[0], cutoffpercent);
 		
-		
-		
+
+		free(exponentialparameters);
 	}
 	else
 	{
@@ -444,12 +452,17 @@ int main()
 		normalparameters[0] = 0.0;
 		normalparameters[1] = 0.0;
 		
-		int surrogatesize = sizeof(sample)/sizeof(sample[0]);
 		normalbootstrap(&sample, &frequency, &normalparameters, 1000, surrogatesize);
-		float samplecutoff = normalcutoff(normalparameters[0], normalparameters[1], cutoffpercent);
+		samplecutoff = normalcutoff(normalparameters[0], normalparameters[1], cutoffpercent);
 		
-		
+		free(normalparameters);
 	}
+
+	free(frequency);
+	free(sample);
+	// Convert to int
+	// Add weighted average cutoff in sqlite golden table
+	return samplecutoff;
 }
 
 
