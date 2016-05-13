@@ -1,12 +1,12 @@
-- [ ] Implement signaling
+- [X] Implement signaling
 - [ ] Implement long term storage
   - [ ] SQLite
-- [ ] Testing
+- [-] Testing
   - [ ] Statistical Analysis Code
   - [ ] Roger's bash scripts
-  - [ ] Kernel module
-- [ ] Integrating project components
-  - [ ] /proc filesystem
+  - [X] Kernel module
+- [-] Integrating project components
+  - [X] /proc filesystem
   - [X] bash scripts
     + maybe send these to the shared buffer?
   - [ ] stats code
