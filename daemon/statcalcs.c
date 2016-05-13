@@ -1,11 +1,13 @@
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 #include "statcalcs.h"
+#include <sqlite3.h> 
 
 
 //Calculates the population gamma distribution parameters alpha and theta given the sample distribution
-void gammabootstrap(float *surrogatenum[], int *surrogatefreq[], float *gammaparam[2], int numboot, int surrogatesize)
+void gammabootstrap(float *surrogatenum, int *surrogatefreq[], float *gammaparam, int numboot, int surrogatesize)
 {
 	int samplesize = surrogatesize;
 	float mainmean = 0;   // sample mean of surrogate population distribution
@@ -14,12 +16,12 @@ void gammabootstrap(float *surrogatenum[], int *surrogatefreq[], float *gammapar
 	
 	//calculate mean of surrogate distribution
 	for(int i = 0; i < surrogatesize; i++) 
-		mainmean = mainmean + *surrogatenum[i];	
+		mainmean = mainmean + surrogatenum[i];	
 	mainmean = mainmean / samplesize;
 	
 	//calculate the variance of the surrogate distribution by adding up all the squared differences between the samples and the sample mean
 	for(int i = 0; i < surrogatesize; i++) 
-		mainvar = mainvar + ((*surrogatenum[i] - mainmean) * (*surrogatenum[i] - mainmean));	
+		mainvar = mainvar + ((surrogatenum[i] - mainmean) * (surrogatenum[i] - mainmean));	
 	mainvar = mainvar / samplesize;
 	
 	//Find alpha and theta parameters of sample set. Mean of gamma distributon = alpha * theta and variance of gamma distribution = alpha * (theta)^2	
@@ -111,32 +113,33 @@ void gammabootstrap(float *surrogatenum[], int *surrogatefreq[], float *gammapar
 	float alpha = (2*mainalpha) - normalalphamean; //We know that the difference between the main sample distribution alpha and the actual population gamma distribution alpha is equal to the difference between the most likely alpha calculated by performing bootstrapping and the actual main sample distribution alpha
 	float theta = (2*maintheta) - normalthetamean; //We know that the difference between the main sample distribution theta and the actual population gamma distribution theta is equal to the difference between the most likely theta calculated by performing bootstrapping and the actual main sample distribution theta
 	
-	*gammaparam[0] = alpha;
-	*gammaparam[1] = theta;
+	gammaparam[0] = alpha;
+	gammaparam[1] = theta;
 }
 
 //Please see step by step comments for gamma distribution bootstrapping function. This function also performs bootstrapping but on the normal distribution.
 //Function for calculating the population normal distribution parameters mu and sigma squared given the sample distribution
-void normalbootstrap(float *surrogatenum[], int *surrogatefreq[], float *normalparam[2], int numboot, int surrogatesize)
+void normalbootstrap(float *surrogatenum, int *surrogatefreq[], float *normalparam, int numboot, int surrogatesize)
 {
 	int samplesize = surrogatesize;
 	float mainmean = 0;   // sample mean of surrogate population distribution
 	float mainvar = 0;    // sample variance of surrogate population distribution
-	
+	puts("AAA");
 	for(int i = 0; i < surrogatesize; i++) //calculate main mean of surrogate distribution
 	{
-		mainmean = mainmean + *surrogatenum[i];
+		mainmean = mainmean + surrogatenum[i];
 	}
-	
+	printf("main mean: %f\nsample size: %d\n", mainmean, samplesize);
 	mainmean = mainmean / samplesize;
+	printf("real main mean: %f\n", mainmean);
 	
 	for(int i = 0; i < surrogatesize; i++)
 	{
-		mainvar = mainvar + ((*surrogatenum[i] - mainmean) * (*surrogatenum[i] - mainmean));
+		mainvar = mainvar + ((surrogatenum[i] - mainmean) * (surrogatenum[i] - mainmean));
 	}
 	
 	mainvar = mainvar / samplesize;
-	
+	printf("Main var: %f\n", mainvar);
 	int bootrep = numboot;
 	
 	float bootsamples[bootrep][samplesize];
@@ -151,7 +154,7 @@ void normalbootstrap(float *surrogatenum[], int *surrogatefreq[], float *normalp
 	{
 		for(int j = 0; j < surrogatesize; j++)
 		{
-			int randomsample = rand() % samplesize;
+			float randomsample = surrogatenum[rand() % samplesize];
 			bootsamples[i][j] = randomsample;
 		}
 	}
@@ -168,7 +171,7 @@ void normalbootstrap(float *surrogatenum[], int *surrogatefreq[], float *normalp
 		tempmean = tempmean / samplesize;
 		bootsampmean[i] = tempmean;
 	}
-	
+
 	for(int i = 0; i < bootrep; i++)
 	{
 		float tempvar = 0;
@@ -183,7 +186,7 @@ void normalbootstrap(float *surrogatenum[], int *surrogatefreq[], float *normalp
 		bootsampvar[i] = tempvar;
 	}
 	
-	
+
 	float normalmumean = 0;
 	float normalmuvar = 0;
 	
@@ -204,20 +207,21 @@ void normalbootstrap(float *surrogatenum[], int *surrogatefreq[], float *normalp
 		normalmuvar = normalmuvar + ((bootsampmean[i] - normalmumean) * (bootsampmean[i] - normalmumean));
 		normalsigmavar = normalsigmavar + ((bootsampvar[i] - normalsigmamean) * (bootsampvar[i] - normalsigmamean));
 	}
-	
+
 	normalmuvar = normalmuvar / bootrep;
 	normalsigmavar = normalsigmavar / bootrep;
 	
 	float mu = (2*mainmean) - normalmumean;
 	float sigma = (2*mainvar) - normalsigmamean;
-	
-	*normalparam[0] = mu;
-	*normalparam[1] = sigma;	
+
+	normalparam[0] = mu;
+	normalparam[1] = sigma;	
+
 }
 
 //Please see step by step comments for gamma distribution bootstrapping funtion. This function also performs bootstrapping but on the normal distribution.
 //Function for calculating the population exponential distribution parameter theta given the sample distribution
-void exponentialbootstrap(float *surrogatenum[], int *surrogatefreq[], float *exponentialtheta, int numboot, int surrogatesize) 
+void exponentialbootstrap(float surrogatenum[], int *surrogatefreq[], float *exponentialtheta, int numboot, int surrogatesize) 
 {
 	int samplesize = surrogatesize;
 	float mainmean = 0;   // sample mean of surrogate population distribution
@@ -225,14 +229,14 @@ void exponentialbootstrap(float *surrogatenum[], int *surrogatefreq[], float *ex
 	
 	for(int i = 0; i < surrogatesize; i++) //calculate main mean of surrogate distribution
 	{
-		mainmean = mainmean + *surrogatenum[i];
+		mainmean = mainmean + surrogatenum[i];
 	}
 	
 	mainmean = mainmean / samplesize;
 	
 	for(int i = 0; i < surrogatesize; i++)
 	{
-		mainvar = mainvar + ((*surrogatenum[i] - mainmean) * (*surrogatenum[i] - mainmean));
+		mainvar = mainvar + ((surrogatenum[i] - mainmean) * (surrogatenum[i] - mainmean));
 	}
 	
 	mainvar = mainvar / samplesize;
@@ -398,28 +402,61 @@ float normalcutoff(float mu, float sigma, float percent)
 	return x; //return our ample number cutoff value
 }
 
-
+//	Insert new element at end of sample
+int callback(void *data, int argc, char **argv, char **azColName){
+	for(int i = 0; i < SAMPLE_SIZE; i++)
+	{
+		if(((float *)data)[i] == 0)
+		{
+			((float *)data)[i] = strtof(argv[0], NULL);
+			break;
+		}
+	}
+	return 0;
+}
 int main()
 {
+	int *frequency=malloc(sizeof(int) * SAMPLE_SIZE);
+	float *sample_pacin = calloc(SAMPLE_SIZE, sizeof(float));
+	float *sample_pacout = calloc(SAMPLE_SIZE, sizeof(float));
+	int surrogatesize = SAMPLE_SIZE;
+	float cutoffpercent = 95.0; //Set the cutoff percentage
+	float samplecutoff = 0.0;
 
 	//	Open database connection
 	sqlite3 *db;
 	char *zErrMsg = 0;
 	int rc;
-	rc = sqlite3_open("gather.db", &db);
+	rc = sqlite3_open("test.db", &db);
 	if(rc){
   	fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
   	exit(EXIT_FAILURE);
   }
 
+	//	Get pac_in from database	
+	char * sql_pacin = malloc(32);
+	sql_pacin = "SELECT PAC_IN from NET_DATA";
+	rc = sqlite3_exec(db, sql_pacin, callback, (void *)sample_pacin, &zErrMsg);
+	if( rc != SQLITE_OK ){
+		fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		sqlite3_free(zErrMsg);
+		exit(EXIT_FAILURE);
+	}
+
+	//	Get pac_out from database	
+	char * sql_pacout = malloc(32);
+	sql_pacout = "SELECT PAC_OUT from NET_DATA";
+	rc = sqlite3_exec(db, sql_pacout, callback, (void *)sample_pacout, &zErrMsg);
+	if( rc != SQLITE_OK ){
+		fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		sqlite3_free(zErrMsg);
+		exit(EXIT_FAILURE);
+	}
+	
 
 	// Get out most recent 1440
 	// Convert to floats
-	int *frequency=malloc(sizeof(int) * 1440);
-	float *sample = malloc(sizeof(float) * 1440);
-	int surrogatesize = sizeof(sample)/sizeof(sample[0]);
-	float cutoffpercent = 95.0; //Set the cutoff percentage
-	float samplecutoff;
+
 
 	if(usegamma)
 	{
@@ -427,7 +464,7 @@ int main()
 		gammaparameters[0] = 0.0;
 		gammaparameters[1] = 0.0;
 		
-		gammabootstrap(&sample, &frequency, &gammaparameters, 1000, surrogatesize);
+		gammabootstrap(sample_pacin, &frequency, gammaparameters, 1000, surrogatesize);
 		samplecutoff = gammacutoff(gammaparameters[0], gammaparameters[1], cutoffpercent);
 		
 		
@@ -440,7 +477,7 @@ int main()
 		float *exponentialparameters = malloc(sizeof(float) * 1);
 		exponentialparameters[0] = 0.0;
 		
-		exponentialbootstrap(&sample, &frequency, exponentialparameters, 1000, surrogatesize);
+		exponentialbootstrap(sample_pacin, &frequency, exponentialparameters, 1000, surrogatesize);
 		samplecutoff = exponentialcutoff(exponentialparameters[0], cutoffpercent);
 		
 
@@ -451,15 +488,15 @@ int main()
 		float *normalparameters = malloc(sizeof(float) * 2);
 		normalparameters[0] = 0.0;
 		normalparameters[1] = 0.0;
-		
-		normalbootstrap(&sample, &frequency, &normalparameters, 1000, surrogatesize);
+		normalbootstrap(sample_pacin, &frequency, normalparameters, 1000, surrogatesize);
 		samplecutoff = normalcutoff(normalparameters[0], normalparameters[1], cutoffpercent);
-		
+		printf("parameters: %f\t%f\n", normalparameters[0], normalparameters[1]);
 		free(normalparameters);
 	}
 
 	free(frequency);
-	free(sample);
+	free(sample_pacin);
+	free(sample_pacout);
 	// Convert to int
 	// Add weighted average cutoff in sqlite golden table
 	return samplecutoff;

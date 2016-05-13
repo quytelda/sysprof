@@ -23,17 +23,20 @@ int main(){
 
 
 	//	Setup mask to recieve signal from kernel module
-	sigfillset(&mask);
-	sigdelset(&mask, SIGCONT);
-	sigsuspend(&mask);
+	//sigfillset(&mask);
+	//sigdelset(&mask, SIGCONT);
+	//sigdelset(&mask, SIGINT);
+	(void) sigemptyset(&mask);
 
 
 	//	Store pid for kernel to use
 	FILE *ifp;
-	char *mode = "r";
+	char *mode = "w";
 	ifp = fopen("/proc/sysprof", mode);
 	int my_pid = getpid();
+	fprintf(stdout, "R %d\n", my_pid);
 	fprintf(ifp, "R %d", my_pid);
+	fclose(ifp);
 
 
 	//	Open database connection
@@ -88,7 +91,7 @@ int main(){
 
 	//	Loop and wait for signal
 	for(;;){
-		(void) sigsuspend(&mask);
+	    kill(getpid(), SIGSTOP);
 		newsample_counter = newsample_counter + 1;
 		if(newsample_counter >= 1440){
 			//create new thread for: bootstrap()
@@ -106,8 +109,8 @@ int main(){
 		//	Insert newly collected data into database
 		char * sql_add = malloc(512);
 		snprintf(sql_add, 512, 
-			"INSERT INTO NET_DATA (ID,PAC_IN,UDP_IN,TCP_IN,ICMP_IN,OTHER_IN,PAC_OUT,UDP_OUT,TCP_OUT,ICMP_OUT,OTHER_OUT)"\
-			" VALUES (NULL, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u);", current.pac_in, current.udp_in, current.tcp_in, 
+			"INSERT INTO NET_DATA (PAC_IN,UDP_IN,TCP_IN,ICMP_IN,OTHER_IN,PAC_OUT,UDP_OUT,TCP_OUT,ICMP_OUT,OTHER_OUT)"\
+			" VALUES (%u, %u, %u, %u, %u, %u, %u, %u, %u, %u);", current.pac_in, current.udp_in, current.tcp_in, 
 			current.icmp_in, current.other_in, current.pac_out, current.udp_out, current.tcp_out, current.icmp_out, current.other_out);
 		rc = sqlite3_exec(db, sql_add, NULL, 0, &zErrMsg);
 		if( rc != SQLITE_OK ){

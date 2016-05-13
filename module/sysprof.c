@@ -35,7 +35,7 @@ MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Linux Statistical System Profiler");
 
 #define PROC_ENTRY_FILENAME "sysprof"
-#define PROC_BUFSIZE 8 // large enough for 64bit max_pid
+#define PROC_BUFSIZE 10 // large enough for 64bit max_pid
 
 /**
  * This function is called when a program attempts to read the entry in /proc.
@@ -60,6 +60,7 @@ static ssize_t sysprof_write(struct file * file, const char * buf,
     // receive input buffer from userspace
     char * buffer = (char *) kmalloc(PROC_BUFSIZE, GFP_KERNEL);
     if(!buffer) return -ENOMEM;
+    memset(buffer, 0, PROC_BUFSIZE);
 
     unsigned long copied = copy_from_user(buffer, buf, length);
     if(copied > 0)
