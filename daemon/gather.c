@@ -7,14 +7,14 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 #include "../include/stats.h"
+#include "./statcalcs.h"
 
 int main(){
-
 	//	Constants
 	int PAGE_SIZE = getpagesize();
 	size_t FILESIZE = PAGE_SIZE * 32;
 	char * FILEPATH = "/dev/sysprof";
-	sigset_t mask;
+	int my_pid = getpid();
 
 
 	// Counters
@@ -22,18 +22,10 @@ int main(){
 	int newsample_counter = 0;
 
 
-	//	Setup mask to recieve signal from kernel module
-	//sigfillset(&mask);
-	//sigdelset(&mask, SIGCONT);
-	//sigdelset(&mask, SIGINT);
-	(void) sigemptyset(&mask);
-
-
 	//	Store pid for kernel to use
 	FILE *ifp;
 	char *mode = "w";
 	ifp = fopen("/proc/sysprof", mode);
-	int my_pid = getpid();
 	fprintf(stdout, "R %d\n", my_pid);
 	fprintf(ifp, "R %d", my_pid);
 	fclose(ifp);
@@ -50,10 +42,9 @@ int main(){
   }
 
 
-	//	Create table if it doesn't exist
+	//	Create raw data table if it doesn't exist
 	char * sql_create = malloc(256);
 	sql_create = "CREATE TABLE IF NOT EXISTS NET_DATA("  \
-         "ID INT PRIMARY KEY     NOT NULL," \
          "PAC_IN				INT," \
          "UDP_IN				INT," \
          "TCP_IN        INT," \
@@ -91,11 +82,11 @@ int main(){
 
 	//	Loop and wait for signal
 	for(;;){
-	    kill(getpid(), SIGSTOP);
+		kill(my_pid, SIGSTOP);
 		newsample_counter = newsample_counter + 1;
-		if(newsample_counter >= 1440){
+		if(newsample_counter >= SAMPLE_SIZE){
 			//create new thread for: bootstrap()
-			newsample_counter = newsample_counter % 1440;
+			newsample_counter = newsample_counter % SAMPLE_SIZE;
 		}
 
 
@@ -117,6 +108,18 @@ int main(){
 			fprintf(stderr, "SQL error: %s\n", zErrMsg);
 			sqlite3_free(zErrMsg);
 		}
+
+
+		//	Get cutoffs from database	
+		char * sql_pacin_cutoff = malloc(32);
+		sql_pacout = "SELECT PAC_IN from NET_CUTOFFS";
+		rc = sqlite3_exec(db, sql_pacout, callback, (void *)sample_pacout, &zErrMsg);
+		if( rc != SQLITE_OK ){
+			fprintf(stderr, "SQL error: %s\n", zErrMsg);
+			sqlite3_free(zErrMsg);
+			exit(EXIT_FAILURE);
+		}
+		free(sql_pacout);
 
 
 		// Get out parameters from sqlite

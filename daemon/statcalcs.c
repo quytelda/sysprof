@@ -7,7 +7,7 @@
 
 
 //Calculates the population gamma distribution parameters alpha and theta given the sample distribution
-void gammabootstrap(float *surrogatenum, int *surrogatefreq[], float *gammaparam, int numboot, int surrogatesize)
+void gammabootstrap(float *surrogatenum, int *surrogatefreq, float *gammaparam, int numboot, int surrogatesize)
 {
 	int samplesize = surrogatesize;
 	float mainmean = 0;   // sample mean of surrogate population distribution
@@ -44,7 +44,7 @@ void gammabootstrap(float *surrogatenum, int *surrogatefreq[], float *gammaparam
 	{
 		for(int j = 0; j < surrogatesize; j++)
 		{
-			int randomsample = rand() % samplesize; //Randomly choose a sample
+			int randomsample = surrogatenum[rand() % samplesize]; //Randomly choose a sample
 			bootsamples[i][j] = randomsample; //Place sample into boostrap sample distribution. *Note: all boostrap sample sizes are equal to the surrogate sample size.
 		}
 	}
@@ -119,27 +119,23 @@ void gammabootstrap(float *surrogatenum, int *surrogatefreq[], float *gammaparam
 
 //Please see step by step comments for gamma distribution bootstrapping function. This function also performs bootstrapping but on the normal distribution.
 //Function for calculating the population normal distribution parameters mu and sigma squared given the sample distribution
-void normalbootstrap(float *surrogatenum, int *surrogatefreq[], float *normalparam, int numboot, int surrogatesize)
+void normalbootstrap(float *surrogatenum, int *surrogatefreq, float *normalparam, int numboot, int surrogatesize)
 {
 	int samplesize = surrogatesize;
 	float mainmean = 0;   // sample mean of surrogate population distribution
 	float mainvar = 0;    // sample variance of surrogate population distribution
-	puts("AAA");
 	for(int i = 0; i < surrogatesize; i++) //calculate main mean of surrogate distribution
 	{
 		mainmean = mainmean + surrogatenum[i];
 	}
-	printf("main mean: %f\nsample size: %d\n", mainmean, samplesize);
 	mainmean = mainmean / samplesize;
-	printf("real main mean: %f\n", mainmean);
 	
 	for(int i = 0; i < surrogatesize; i++)
 	{
 		mainvar = mainvar + ((surrogatenum[i] - mainmean) * (surrogatenum[i] - mainmean));
-	}
-	
+	}	
 	mainvar = mainvar / samplesize;
-	printf("Main var: %f\n", mainvar);
+
 	int bootrep = numboot;
 	
 	float bootsamples[bootrep][samplesize];
@@ -221,7 +217,7 @@ void normalbootstrap(float *surrogatenum, int *surrogatefreq[], float *normalpar
 
 //Please see step by step comments for gamma distribution bootstrapping funtion. This function also performs bootstrapping but on the normal distribution.
 //Function for calculating the population exponential distribution parameter theta given the sample distribution
-void exponentialbootstrap(float surrogatenum[], int *surrogatefreq[], float *exponentialtheta, int numboot, int surrogatesize) 
+void exponentialbootstrap(float surrogatenum[], int *surrogatefreq, float *exponentialtheta, int numboot, int surrogatesize) 
 {
 	int samplesize = surrogatesize;
 	float mainmean = 0;   // sample mean of surrogate population distribution
@@ -257,7 +253,7 @@ void exponentialbootstrap(float surrogatenum[], int *surrogatefreq[], float *exp
 	{
 		for(int j = 0; j < surrogatesize; j++)
 		{
-			int randomsample = rand() % samplesize;
+			int randomsample = surrogatenum[rand() % samplesize];
 			bootsamples[i][j] = randomsample;
 		}
 	}
@@ -403,7 +399,7 @@ float normalcutoff(float mu, float sigma, float percent)
 }
 
 //	Insert new element at end of sample
-int callback(void *data, int argc, char **argv, char **azColName){
+int store_data(void *data, int argc, char **argv, char **azColName){
 	for(int i = 0; i < SAMPLE_SIZE; i++)
 	{
 		if(((float *)data)[i] == 0)
@@ -414,14 +410,23 @@ int callback(void *data, int argc, char **argv, char **azColName){
 	}
 	return 0;
 }
+
+//	Extract stored cutoff
+int extract_cutoff(void *data, int argc, char **argv, char **azColName){
+	((float *)data)[0] = strtol(argv[0], NULL, 10);
+	((float *)data)[0] = strtol(argv[1], NULL, 10);
+	return 0;
+}
+
 int main()
 {
 	int *frequency=malloc(sizeof(int) * SAMPLE_SIZE);
 	float *sample_pacin = calloc(SAMPLE_SIZE, sizeof(float));
 	float *sample_pacout = calloc(SAMPLE_SIZE, sizeof(float));
 	int surrogatesize = SAMPLE_SIZE;
-	float cutoffpercent = 95.0; //Set the cutoff percentage
-	float samplecutoff = 0.0;
+	float pacin_cutoff;
+	float pacout_cutoff;
+
 
 	//	Open database connection
 	sqlite3 *db;
@@ -433,73 +438,150 @@ int main()
   	exit(EXIT_FAILURE);
   }
 
+
+	//	Create parameter table if it doesn't exist
+	char * sql_create = malloc(256);
+	sql_create = "CREATE TABLE IF NOT EXISTS NET_CUTOFFS("  \
+						"PAC_IN				INT," \
+						"UDP_IN				INT," \
+						"TCP_IN       INT," \
+						"ICMP_IN			INT," \
+						"OTHER_IN			INT," \
+						"PAC_OUT			INT," \
+						"UDP_OUT			INT," \
+						"TCP_OUT			INT," \
+						"ICMP_OUT			INT," \
+						"OTHER_OUT		INT," \
+						"COUNT				INT);";
+  rc = sqlite3_exec(db, sql_create, NULL, 0, &zErrMsg);
+	if(rc != SQLITE_OK){
+		fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		sqlite3_free(zErrMsg);
+		exit(EXIT_FAILURE);
+	}
+	free(sql_create);
+
+
 	//	Get pac_in from database	
 	char * sql_pacin = malloc(32);
 	sql_pacin = "SELECT PAC_IN from NET_DATA";
-	rc = sqlite3_exec(db, sql_pacin, callback, (void *)sample_pacin, &zErrMsg);
+	rc = sqlite3_exec(db, sql_pacin, store_data, (void *)sample_pacin, &zErrMsg);
 	if( rc != SQLITE_OK ){
 		fprintf(stderr, "SQL error: %s\n", zErrMsg);
 		sqlite3_free(zErrMsg);
 		exit(EXIT_FAILURE);
 	}
+	free(sql_pacin);
+
 
 	//	Get pac_out from database	
 	char * sql_pacout = malloc(32);
 	sql_pacout = "SELECT PAC_OUT from NET_DATA";
-	rc = sqlite3_exec(db, sql_pacout, callback, (void *)sample_pacout, &zErrMsg);
+	rc = sqlite3_exec(db, sql_pacout, store_data, (void *)sample_pacout, &zErrMsg);
 	if( rc != SQLITE_OK ){
 		fprintf(stderr, "SQL error: %s\n", zErrMsg);
 		sqlite3_free(zErrMsg);
 		exit(EXIT_FAILURE);
 	}
+	free(sql_pacout);
 	
 
-	// Get out most recent 1440
-	// Convert to floats
-
-
+	//	Depending on flags set, evaluate a given distribution for the current data
 	if(usegamma)
 	{
-		float *gammaparameters = malloc(sizeof(float) * 2);
-		gammaparameters[0] = 0.0;
-		gammaparameters[1] = 0.0;
+		//	Create cutoffs
+		float *gammaparameters = malloc(sizeof(float) * 2);		
+		gammabootstrap(sample_pacin, frequency, gammaparameters, BOOTSTRAP_ITERS, surrogatesize);
+		pacin_cutoff = gammacutoff(gammaparameters[0], gammaparameters[1], cutoffpercent);
+		gammabootstrap(sample_pacout, frequency, gammaparameters, BOOTSTRAP_ITERS, surrogatesize);
+		pacout_cutoff = gammacutoff(gammaparameters[0], gammaparameters[1], cutoffpercent);
 		
-		gammabootstrap(sample_pacin, &frequency, gammaparameters, 1000, surrogatesize);
-		samplecutoff = gammacutoff(gammaparameters[0], gammaparameters[1], cutoffpercent);
-		
-		
-		// Weighted average add new cutoffs to golden table
-		free(gammaparameters);
-		
+		free(gammaparameters);		
 	}
 	else if(useexponential)
 	{
 		float *exponentialparameters = malloc(sizeof(float) * 1);
-		exponentialparameters[0] = 0.0;
-		
-		exponentialbootstrap(sample_pacin, &frequency, exponentialparameters, 1000, surrogatesize);
-		samplecutoff = exponentialcutoff(exponentialparameters[0], cutoffpercent);
-		
+		exponentialbootstrap(sample_pacin, frequency, exponentialparameters, BOOTSTRAP_ITERS, surrogatesize);
+		pacin_cutoff = exponentialcutoff(exponentialparameters[0], cutoffpercent);
+		exponentialbootstrap(sample_pacout, frequency, exponentialparameters, BOOTSTRAP_ITERS, surrogatesize);
+		pacout_cutoff = exponentialcutoff(exponentialparameters[0], cutoffpercent);
 
 		free(exponentialparameters);
 	}
 	else
 	{
 		float *normalparameters = malloc(sizeof(float) * 2);
-		normalparameters[0] = 0.0;
-		normalparameters[1] = 0.0;
-		normalbootstrap(sample_pacin, &frequency, normalparameters, 1000, surrogatesize);
-		samplecutoff = normalcutoff(normalparameters[0], normalparameters[1], cutoffpercent);
-		printf("parameters: %f\t%f\n", normalparameters[0], normalparameters[1]);
+		normalbootstrap(sample_pacin, frequency, normalparameters, BOOTSTRAP_ITERS, surrogatesize);
+		pacin_cutoff = normalcutoff(normalparameters[0], normalparameters[1], cutoffpercent);
+		normalbootstrap(sample_pacout, frequency, normalparameters, BOOTSTRAP_ITERS, surrogatesize);
+		pacout_cutoff = normalcutoff(normalparameters[0], normalparameters[1], cutoffpercent);
+
 		free(normalparameters);
 	}
+
+
+	//	Get former cutoffs from database
+	int * opacin_cutoff = malloc(sizeof(int) * 2);
+	char * sql_pacin_cutoff = malloc(32);
+	sql_pacin_cutoff = "SELECT PAC_IN, COUNT from NET_CUTOFFS";
+	rc = sqlite3_exec(db, sql_pacin_cutoff, extract_cutoff, (void *)opacin_cutoff, &zErrMsg);
+	if( rc != SQLITE_OK ){
+		fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		sqlite3_free(zErrMsg);
+		exit(EXIT_FAILURE);
+	}
+	//	Calculate new weighted average of cutoff
+	pacin_cutoff = pacin_cutoff / (opacin_cutoff[1] + 1.0);
+	pacin_cutoff += opacin_cutoff[0] / (opacin_cutoff[1] + 1.0);
+	printf("pacin cutoff: %f\n", pacin_cutoff);
+	free(opacin_cutoff);	
+	free(sql_pacin_cutoff);
+
+
+	//	Get former cutoffs from database
+	int * opacout_cutoff = malloc(sizeof(int) * 2);
+	char * sql_pacout_cutoff = malloc(32);
+	sql_pacout_cutoff = "SELECT PAC_OUT, COUNT from NET_CUTOFFS";
+	rc = sqlite3_exec(db, sql_pacout_cutoff, extract_cutoff, (void *)opacout_cutoff, &zErrMsg);
+	if( rc != SQLITE_OK ){
+		fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		sqlite3_free(zErrMsg);
+		exit(EXIT_FAILURE);
+	}
+	//	Calculate new weighted average of cutoff
+	pacout_cutoff = pacout_cutoff / (opacout_cutoff[1] + 1.0);
+	pacout_cutoff += opacout_cutoff[0] / (opacout_cutoff[1] + 1.0);
+	printf("pacout cutoff: %f\n", pacout_cutoff);
+	free(opacout_cutoff);	
+	free(sql_pacout_cutoff);
+
+
+	//	Convert floats to unsigned integers
+	unsigned int upacin_cutoff = pacin_cutoff;
+	unsigned int upacout_cutoff = pacout_cutoff;
+
+
+	//	Store cutoffs in database
+	//	Note: other data not yet collected, 0 is place holder
+	char * sql_cutoffs = malloc(512);
+	snprintf(sql_cutoffs, 512, "INSERT INTO NET_CUTOFFS (PAC_IN,UDP_IN,TCP_IN,ICMP_IN,OTHER_IN,PAC_OUT,UDP_OUT,TCP_OUT,ICMP_OUT,OTHER_OUT)"\
+		" VALUES (%u, %u, %u, %u, %u, %u, %u, %u, %u, %u);", 
+		upacin_cutoff, 0, 0, 0, 0, 
+		upacout_cutoff, 0, 0, 0, 0);
+	rc = sqlite3_exec(db, sql_cutoffs, NULL, 0, &zErrMsg);
+	if( rc != SQLITE_OK ){
+		fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		sqlite3_free(zErrMsg);
+	}
+	free(sql_cutoffs);
+
 
 	free(frequency);
 	free(sample_pacin);
 	free(sample_pacout);
 	// Convert to int
 	// Add weighted average cutoff in sqlite golden table
-	return samplecutoff;
+	return 0;
 }
 
 
