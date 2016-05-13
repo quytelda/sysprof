@@ -21,10 +21,13 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/uaccess.h>
 #include <linux/proc_fs.h>
+#include <linux/slab.h>
 
-#include "data/netfilter.h"
 #include "shmem.h"
+#include "register.h"
+#include "data/netfilter.h"
 
 MODULE_AUTHOR("Quytelda Kahja");
 MODULE_AUTHOR("Roger Xiao");
@@ -32,6 +35,7 @@ MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Linux Statistical System Profiler");
 
 #define PROC_ENTRY_FILENAME "sysprof"
+#define PROC_BUFSIZE 8 // large enough for 64bit max_pid
 
 /**
  * This function is called when a program attempts to read the entry in /proc.
@@ -46,11 +50,59 @@ static ssize_t sysprof_read(struct file * file, char __user * buf,
 /**
  * This function is called when a program attempts to write the entry in /proc.
  * Whatever data was written can be copied from @buf in userspace.
+ *
+ * We expect to read in the PID of a running process from userspace.
+ * That PID will be parsed out and registered to receive signals.
  */
 static ssize_t sysprof_write(struct file * file, const char * buf,
 			     size_t length, loff_t * offset)
 {
-    return 0;
+    // receive input buffer from userspace
+    char * buffer = (char *) kmalloc(PROC_BUFSIZE, GFP_KERNEL);
+    if(!buffer) return -ENOMEM;
+
+    unsigned long copied = copy_from_user(buffer, buf, length);
+    if(copied > 0)
+    {
+	printk(KERN_ERR "sysprof: Unable to copy procfs input buffer from userspace.");
+	return -ENOMEM;
+    }
+
+    // seperate command character and PID
+    char * ptr = strim(buffer);
+    char * cchr = strsep(&ptr, " ");
+    if(!cchr || !ptr || strlen(cchr) <= 0 || strlen(ptr) <= 0)
+    {
+	printk(KERN_ERR "sysprof: Malformed input received via procfs: \"%s\"\n", buffer);
+	return 0;
+    }
+
+    // try to parse out a pid
+    unsigned int pid;
+    int err = kstrtouint(ptr, 10, &pid);
+    if(err > 0)
+    {
+	printk(KERN_ERR "sysprof: Unable to parse valid PID from input: \"%s\"", ptr);
+	return err;
+    }
+
+    // (un)register the PID
+    switch(cchr[0])
+    {
+    case 'R':
+	printk("Registering PID: %u\n", pid);
+	register_pid((pid_t) pid);
+	break;
+    case 'U':
+	printk("Unregistering PID: %u\n", pid);
+	unregister_pid((pid_t) pid);
+	break;
+    default:
+	printk(KERN_ERR "sysprof: Unknown command received.");
+    }
+
+    kfree(buffer);
+    return length;
 }
 
 static struct proc_dir_entry * proc_entry;
@@ -68,7 +120,7 @@ int __init sysprof_init(void)
     printk(KERN_INFO "sysprof: Loading sysprof module...\n");    
 
     /* setup proc filesystem entry */
-    proc_entry = proc_create(PROC_ENTRY_FILENAME, 0644, NULL, &proc_fops);
+    proc_entry = proc_create(PROC_ENTRY_FILENAME, 0666, NULL, &proc_fops);
     if (!proc_entry)
     {
 	remove_proc_entry(PROC_ENTRY_FILENAME, NULL);
