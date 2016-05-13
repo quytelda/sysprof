@@ -25,12 +25,12 @@ int main(){
 	//	Setup mask to recieve signal from kernel module
 	sigfillset(&mask);
 	sigdelset(&mask, SIGCONT);
-	sigsuspend(&mask);
+	sigdelset(&mask, SIGINT);
 
 
 	//	Store pid for kernel to use
 	FILE *ifp;
-	char *mode = "r";
+	char *mode = "w";
 	ifp = fopen("/proc/sysprof", mode);
 	int my_pid = getpid();
 	fprintf(ifp, "R %d", my_pid);
