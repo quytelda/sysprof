@@ -68,18 +68,38 @@ static ssize_t sysprof_write(struct file * file, const char * buf,
 	return -ENOMEM;
     }
 
+    // seperate command character and PID
+    char * ptr = strim(buffer);
+    char * cchr = strsep(&ptr, " ");
+    if(!cchr || !ptr || strlen(cchr) <= 0 || strlen(ptr) <= 0)
+    {
+	printk(KERN_ERR "sysprof: Malformed input received via procfs: \"%s\"\n", buffer);
+	return 0;
+    }
+
     // try to parse out a pid
     unsigned int pid;
-    int err = kstrtouint(strim(buffer), 10, &pid);
+    int err = kstrtouint(ptr, 10, &pid);
     if(err > 0)
     {
-	printk(KERN_ERR "sysprof: Unable to parse valid PID from input: \"%s\"", buffer);
+	printk(KERN_ERR "sysprof: Unable to parse valid PID from input: \"%s\"", ptr);
 	return err;
     }
 
-    // register the PID
-    printk("Registering PID: %u\n", pid);
-    register_pid((pid_t) pid);
+    // (un)register the PID
+    switch(cchr[0])
+    {
+    case 'R':
+	printk("Registering PID: %u\n", pid);
+	register_pid((pid_t) pid);
+	break;
+    case 'U':
+	printk("Unregistering PID: %u\n", pid);
+	unregister_pid((pid_t) pid);
+	break;
+    default:
+	printk(KERN_ERR "sysprof: Unknown command received.");
+    }
 
     kfree(buffer);
     return length;

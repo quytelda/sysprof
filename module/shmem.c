@@ -28,6 +28,7 @@
 #include <linux/vmalloc.h>
 
 #include "shmem.h"
+#include "register.h"
 
 static void * shmem_buffer = NULL;
 static void * shmem_cursor = NULL;
@@ -182,4 +183,7 @@ void insert_data(void * data, size_t size)
 
     // advance cursor
     shmem_cursor += size;
+
+    // notify listeners that something was inserted
+    signal_processes();
 }
